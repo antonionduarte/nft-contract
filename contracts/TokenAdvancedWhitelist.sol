@@ -54,7 +54,7 @@ contract TokenWhitelist is ERC721A, Ownable {
 	) external payable {
 		require(isOpenToPublic, "Error: The NFT isn't open for public minting yet.");
 		require(_quantity > 0, "Error: You need to Mint more than one Token.");
-		// TODO: Check for supply
+		require(_quantity + totalSupply() < numberOfTokens, "Error: The quantity you're trying to mint excceeds the total supply");
 		require(_quantity + _addressData[_to].numberMinted <= maxNumberMints, "Error: You can't mint that quantity of tokens.");
 		require(msg.value >= ((_quantity * mintPrice) * (1 gwei)), "Error: You aren't paying enough.");
 
@@ -75,7 +75,7 @@ contract TokenWhitelist is ERC721A, Ownable {
 	) external payable {
 		require(isOpenToWhitelist);
 		require(_quantity > 0, "Error: You need to Mint more than one Token.");
-		// TODO: Check for supply	
+		require(_quantity + totalSupply() < numberOfTokens, "Error: The quantity you're trying to mint excceeds the total supply");
 		require(_quantity + _addressData[_to].numberMinted <= maxNumberMints, "Error: You can't mint that quantity of tokens.");	
 		require(msg.value >= ((_quantity * mintPrice) * (1 gwei)), "Error: You aren't paying enough.");
 
@@ -133,6 +133,7 @@ contract TokenWhitelist is ERC721A, Ownable {
 	*/
 	function ownerMint(uint _quantity) external onlyOwner {
 		require(_quantity > 0, "Error: You need to Mint more than one Token");
+		require(_quantity + totalSupply() < numberOfTokens, "Error: The quantity you're trying to mint excceeds the total supply");
 		_safeMint(msg.sender, _quantity);
 	}
 	
@@ -177,7 +178,7 @@ contract TokenWhitelist is ERC721A, Ownable {
 		@dev Function to indicate the base URI of the metadata.
 	 */
 	function _baseURI() internal view virtual override returns (string memory) {
-		return 'ipfs://QmXaPALGNBnDvguizmcwvzFnCGUsfwkhyWoQWRT9aCung4';
+		return 'ipfs://PLACE-URI-HERE'; // TODO!
 	}
 
 	/**

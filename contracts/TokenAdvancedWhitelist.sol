@@ -15,14 +15,14 @@ import "hardhat/console.sol";
 	This token works exclusively in a Whitelist so there is no need to close and open whitelist.
  */
 contract TokenWhitelist is ERC721A, Ownable {
-	constructor(address _adminSigner) ERC721A("TokenWhitelist", "TKN") {
-		adminSigner = _adminSigner;
+	constructor() ERC721A("TokenWhitelist", "TKN") {
+		adminSigner = msg.sender;
 	}
 	
 	// Minting related variables
 	uint64 private mintPrice = 1000000000;
-	uint16 private numberOfTokens = 6666;
-	uint16 private maxNumberMints = 6666;
+	uint16 private numberOfTokens = 15;
+	uint16 private maxNumberMints = 5;
 
 	bool private isOpenToWhitelist = false;
 	bool private isOpenToPublic = false;
@@ -58,7 +58,7 @@ contract TokenWhitelist is ERC721A, Ownable {
 		require(_quantity + _addressData[_to].numberMinted <= maxNumberMints, "Error: You can't mint that quantity of tokens.");
 		require(msg.value >= ((_quantity * mintPrice) * (1 gwei)), "Error: You aren't paying enough.");
 
-		_safeMint(_to, _quantity);
+		_mint(_to, _quantity, "", false);
 
 		// TODO: Automatically handle comissions.
 	}
@@ -82,7 +82,7 @@ contract TokenWhitelist is ERC721A, Ownable {
 		bytes32 digest = keccak256(abi.encode(CouponType.Presale, _to));
 		require(_isVerifiedCoupon(digest, _coupon), "Error: Invalid Signature, you might not be registered in the WL.");
 
-		_safeMint(_to, _quantity);
+		_mint(_to, _quantity, "", false);
 
 		// TODO: Automatically handle comissions.
 	}
@@ -178,7 +178,7 @@ contract TokenWhitelist is ERC721A, Ownable {
 		@dev Function to indicate the base URI of the metadata.
 	 */
 	function _baseURI() internal view virtual override returns (string memory) {
-		return 'ipfs://PLACE-URI-HERE'; // TODO!
+		return 'ipfs://QmNm96UyEdJgLnhuGczUna37j1PSfv42HVNkM43G2vrMaF/'; // TODO: Replace with true Metadata!!
 	}
 
 	/**

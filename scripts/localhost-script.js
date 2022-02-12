@@ -15,12 +15,14 @@ async function main() {
 
   // We get the contract to deploy
 
-  const BlackGold = await hre.ethers.getContractFactory("BlackGold");
-  const blackGold = await BlackGold.deploy();
+  const Token = await hre.ethers.getContractFactory("TokenWhitelist");
+  const token = await Token.deploy();
 
-  await blackGold.deployed();
+  await token.deployed();
 
-  console.log("Black Gold deployed to:", blackGold.address);
+	await token.openToPublic();
+
+  console.log("Token deployed to:", token.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

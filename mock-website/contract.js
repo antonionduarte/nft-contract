@@ -1,6 +1,13 @@
 import { ethers } from "./ethers-5.1.esm.min.js";
 import TokenWhitelist from '../artifacts/contracts/TokenAdvancedWhitelist.sol/TokenWhitelist.json' assert {type: 'json'}
 
+/* Global Variables */
+var quantityToMint = 1
+
+/* HTML Variables */
+const mint_quantity_slider = document.getElementById('mint-quantity-slider');
+
+
 /* ------------ */
 /* Ethers Logic */
 /* ------------ */
@@ -36,9 +43,10 @@ const tokenBalance = async () => {
 	return parseInt(tokenBalance)
 }
 
-const mintToken = async () => {
-	const result = await contract.publicMint(signer.getAddress(), 1, {
-		value: ethers.utils.parseEther('1.0')
+const mintToken = async (quantityToMint) => {
+	const valueStr = (1.0 * quantityToMint).toString()
+	const result = await contract.publicMint(signer.getAddress(), quantityToMint, {
+		value: ethers.utils.parseEther(valueStr)
 	})
 
 	await result.wait()
@@ -53,6 +61,10 @@ async function eventListeners() {
 	document.getElementById("balance-button").addEventListener('click', setBalance);
 	document.getElementById("mint-button").addEventListener('click', mintPublic)
 	document.getElementById("token-balance-button").addEventListener('click', setTokenBalance);
+	document.getElementById("mint-quantity-slider").oninput = () => {
+		quantityToMint = mint_quantity_slider.value
+		document.getElementById("quantity-to-mint").innerHTML = quantityToMint
+	}
 }
 
 async function setTokenBalance() {
@@ -66,7 +78,7 @@ async function setBalance() {
 }
 
 async function mintPublic() {
-	await mintToken()
+	await mintToken(quantityToMint)
 }
 
 eventListeners()

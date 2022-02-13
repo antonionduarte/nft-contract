@@ -8,7 +8,12 @@
 <body">
   <div>
 		<div>
-			<input id="mint-button" type="button" value="Mint Token">
+			<div>
+				<input id="mint-button" type="button" value="Mint Token">
+				<input id="mint-quantity-slider" type="range" min="1.0" step="1.0" max="5.0" value="1.0">
+				<span id="quantity-to-mint">1</span>
+			</div>
+			
 			<input type="button" id="token-balance-button" value="Owned Tokens">
 			Quantity Tokens:
 			<span id="token-balance"></span>

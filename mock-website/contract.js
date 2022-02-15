@@ -8,7 +8,6 @@ var quantityToMint = 1
 /* HTML Variables */
 const mint_quantity_slider = document.getElementById('mint-quantity-slider');
 
-
 /* ------------ */
 /* Ethers Logic */
 /* ------------ */

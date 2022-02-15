@@ -7,6 +7,12 @@ const CouponTypeEnum = {
   Presale: 0,
 };
 
+/**
+ * The main function for creating a whitelist key.
+ * @param {*} addrStr The address of the wallet to add to the whitelist.
+ * @param {*} pvtKeyString The signing private key.
+ * @returns The key to add to the whitelist.
+ */
 function addToWhitelist(addrStr, pvtKeyString) {
 	var coupon = generateCoupon(addrStr, pvtKeyString)
 	var serializedCoupon = serializeCoupon(coupon)
@@ -14,6 +20,10 @@ function addToWhitelist(addrStr, pvtKeyString) {
 	return key;
 }
 
+/**
+ * Function used to generate a signer, a pair of a public and private address.
+ * @returns A dictionary containing a pair of public and private address.
+ */
 function generateSigner() {
 	var pvtKey = crypto.randomBytes(32);
 	const pvtKeyString = pvtKey.toString("hex");
@@ -26,6 +36,9 @@ function generateSigner() {
 	}
 }
 
+/**
+ * The function to generate coupons.
+ */
 function generateCoupon(address, signerPvtKeyString) {
 	const signerPvtKey = Buffer.from(signerPvtKeyString, "hex");
 
@@ -39,6 +52,8 @@ function generateCoupon(address, signerPvtKeyString) {
 
 	return coupon;
 }
+
+/* The following are helper functions to aid in coupon generation and serialization */
 
 function createCoupon(hash, signerPvtKey) {
 	return ecsign(hash, signerPvtKey);
@@ -62,5 +77,7 @@ function serializeCoupon(coupon) {
 function generateKey(serializedCoupon) {
 	return serializedCoupon.r + "-" + serializedCoupon.s + "-" + serializedCoupon.v;
 }
+
+// Runnable
 
 console.log(addToWhitelist("0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199", "082c2e79e6b92eb1ae329fcd9eeebc7c6605e0f20269e54123104da270d10419"))

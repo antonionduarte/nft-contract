@@ -10,8 +10,8 @@ node scripts/sample-script.js
 npx hardhat help
 ```
 
-- Test Public Key: 0x2A983ecb7c7BCeEE93859a9B15D8fb9409dDab82
-- Test Private Key: 0xdc735d5b507f661aa7f3fece003747d035ab19d449c8de025a3637f8eed806d5
+- Test Public Key: 0x402a4189b1d72EdFBc9dfEb7771e4A5549B43531
+- Test Private Key: 082c2e79e6b92eb1ae329fcd9eeebc7c6605e0f20269e54123104da270d10419
 
 # deploy to localhost
 

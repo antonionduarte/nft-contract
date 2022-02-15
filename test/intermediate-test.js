@@ -17,6 +17,8 @@ describe("Token", function () {
 		const pvtKeyString = pvtKey.toString("hex");
 		const signerAddress = ethers.utils.getAddress(privateToAddress(pvtKey).toString("hex"));
 
+		console.log("HERM: " + signerAddress)
+
 		const receiver = ethers.utils.getAddress(mintingKey);
 
 		const Token = await ethers.getContractFactory("TokenWhitelist");
@@ -29,13 +31,14 @@ describe("Token", function () {
 
 		let serializedCoupon = serializeCoupon(coupon);
 		let key = generateKey(serializedCoupon);
-		console.log(key);
 
 		let dKey = desserializeKey(key)
 
-		// await token.whitelistMint(sig);
 		token.openToWhitelist();
-		token.whitelistMint(receiver, 1, dKey);
+		token.whitelistMint(receiver, 1, coupon, {
+			value: ethers.utils.parseEther("1")
+		});
+		token.balanceOf(receiver)
 	});
 });
 
@@ -60,3 +63,23 @@ function desserializeKey(key) {
 		v: parseInt(divided_key[2])
 	}
 }
+
+/*
+function desserializeKey(key) {
+	let divided_key = key.split("-");
+
+	return {
+		r: "0x" + divided_key[0],
+		s: "0x" + divided_key[1],
+		v: parseInt(divided_key[2]) 
+	}
+}*/
+
+/*
+function desserializeKey(key) {
+	return {
+		r: "0xbe69cfbe41be2d2bbfd991a46a72a679fa29432974e97b4ff3f7512982a9313e",
+		s: "0xbe69cfbe41be2d2bbfd991a46a72a679fa29432974e97b4ff3f7512982a9313e",
+		v: 27
+	}
+}*/

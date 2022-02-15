@@ -1,5 +1,6 @@
-import { ethers } from "./ethers-5.1.esm.min.js";
+import { ethers } from "./libs/ethers-5.1.esm.min.js";
 import TokenWhitelist from '../artifacts/contracts/TokenAdvancedWhitelist.sol/TokenWhitelist.json' assert {type: 'json'}
+import whitelist from './whitelist.json' assert {type: 'json'}
 
 /* Global Variables */
 var quantityToMint = 1
@@ -43,7 +44,7 @@ const tokenBalance = async () => {
 	return parseInt(tokenBalance)
 }
 
-const mintToken = async (quantityToMint) => {
+const mintTokenPublic = async (quantityToMint) => {
 	const valueStr = (1.0 * quantityToMint).toString()
 	const result = await contract.publicMint(signer.getAddress(), quantityToMint, {
 		value: ethers.utils.parseEther(valueStr)
@@ -53,13 +54,53 @@ const mintToken = async (quantityToMint) => {
 	setTokenBalance()
 }
 
+const mintTokenWhitelist = async (quantityToMint) => {
+	const valueStr = (1.0 * quantityToMint).toString()
+
+	const addr = await signer.getAddress()
+	const addrStr = addr.toString("hex")
+	const key = getKey(addrStr)
+	const coupon = desserializeKey(key)
+
+	const result = await contract.whitelistMint(signer.getAddress(), quantityToMint, coupon, {
+		value: ethers.utils.parseEther(valueStr)
+	})
+
+	await result.wait()
+	setTokenBalance()
+}
+
+/* ---------------------- */
+/* Parsing JSON Whitelist */
+/* ---------------------- */
+
+const getKey = (addrStr) => {
+	let users = whitelist.users
+
+	for (var i in users) {
+		if ((users[i].address).toUpperCase() === (addrStr).toUpperCase()) {
+			return users[i].key
+		}
+	}
+}
+
+function desserializeKey(key) {
+	let divided_key = key.split("-");
+	
+	return {
+		r: "0x" + divided_key[0],
+		s: "0x" + divided_key[1],
+		v: parseInt(divided_key[2])
+	}
+}
+
 /* ------------------ */
 /* Frontend Functions */
 /* ------------------ */
 
 async function eventListeners() {
 	document.getElementById("balance-button").addEventListener('click', setBalance);
-	document.getElementById("mint-button").addEventListener('click', mintPublic)
+	document.getElementById("mint-button").addEventListener('click', mintWhitelist)
 	document.getElementById("token-balance-button").addEventListener('click', setTokenBalance);
 	document.getElementById("mint-quantity-slider").oninput = () => {
 		quantityToMint = mint_quantity_slider.value
@@ -77,8 +118,12 @@ async function setBalance() {
 	document.getElementById("balance").innerHTML = balance
 }
 
+async function mintWhitelist() {
+	await mintTokenWhitelist(quantityToMint)
+}
+
 async function mintPublic() {
-	await mintToken(quantityToMint)
+	await mintTokenPublic(quantityToMint)
 }
 
 eventListeners()

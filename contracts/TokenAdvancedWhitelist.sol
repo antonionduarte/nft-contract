@@ -43,7 +43,7 @@ contract TokenWhitelist is ERC721A, Ownable {
 	/* ---------------- */
 	/* Public Functions */
 	/* ---------------- */
-
+	
 	/**
 		@dev The publicMint function, that requires a payment.
 		@param _quantity The quantity of NFTs that are trying to be minted.

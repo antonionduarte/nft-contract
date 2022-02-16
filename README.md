@@ -1,4 +1,4 @@
-# Basic Project
+# smart contract development
 
 ```shell
 npx hardhat accounts
@@ -17,3 +17,11 @@ npx hardhat help
 
 Run the following command:
 ```npx hardhat run scripts/localhost-script.js --network localhost```
+
+# notes
+
+- In a final deployment contract I might want to hardcode quite a lot of variables and functions like:
+- changeAdminSigner()
+- contractChain()
+- changeNumberTokens()
+- contractBalance()

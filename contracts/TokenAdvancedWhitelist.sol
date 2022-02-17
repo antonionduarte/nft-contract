@@ -99,28 +99,15 @@ contract TokenWhitelist is ERC721A, Ownable {
 	}
 
 	/**
-	 * @dev Returns the chainid of the contract.
-	*/
-	function contractChain() external view onlyOwner returns (uint) {
-		return block.chainid;
-	}
-
-	/**
 	 * @dev Allows changing the maximum number of tokens. 
+	 TODO: Might not be necessary, this might be set in stone.
 	*/
 	function changeNumberTokens(uint16 _numberOfTokens) external onlyOwner {
 		numberOfTokens = _numberOfTokens;
 	}
 
-	/** 
-		@dev Returns the current balance of the smart contract.
-	*/
-	function contractBalance() external view onlyOwner returns (uint) {
-		return address(this).balance;
-	}
-
 	/**
-		@dev Transfers funds to a specific wallet.
+		@dev Transfers funds to the owner wallet.
 	*/
 	function withdraw() public payable onlyOwner {
 		(bool success, ) = payable(owner()).call{ value: address(this).balance }("");

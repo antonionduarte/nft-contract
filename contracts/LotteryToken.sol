@@ -6,6 +6,9 @@ pragma solidity ^0.8.0;
 // Imports
 import "./ERC721A.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@chainlink/contracts/src/v0.8/interfaces/LinkTokenInterface.sol";
+import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
+import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 import "hardhat/console.sol";
 
 /**
@@ -14,10 +17,34 @@ import "hardhat/console.sol";
 
 	This token works exclusively in a Whitelist so there is no need to close and open whitelist.
  */
-contract LotteryToken is ERC721A, Ownable {
-	constructor() ERC721A("TokenWhitelist", "TKN") {
+contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
+	constructor(uint64 subscriptionId) VRFConsumerBaseV2(vrfCoordinator) ERC721A("TokenWhitelist", "TKN") {
+		COORDINATOR = VRFCoordinatorV2Interface(vrfCoordinator);
+    LINKTOKEN = LinkTokenInterface(link);
 		adminSigner = msg.sender;
+    s_owner = msg.sender;
+    s_subscriptionId = subscriptionId;
 	}
+
+	// Chainlink related configs.
+	// TODO: Change them to work for the Mainnet.
+	VRFCoordinatorV2Interface COORDINATOR;
+  LinkTokenInterface LINKTOKEN;
+	
+
+	uint64 s_subscriptionId;
+
+	address vrfCoordinator = 0x6168499c0cFfCaCD319c818142124B7A15E857ab; // TODO: Currently set for Rinkeby, change for Mainnet.
+	address link = 0x01BE23585060835E02B77ef475b0Cc51aA1e0709;
+	bytes32 keyHash = 0xd89b2bf150e3b9e13446986e571fb9cab24b13cea0a43ea20a6049a85cc807cc;
+  uint32 callbackGasLimit = 100000;
+  uint16 requestConfirmations = 3;
+	uint32 numWords =  1;
+
+	uint256[] public s_randomWords; // Where the random values are stored 
+
+  uint256 public s_requestId;
+  address s_owner;
 	
 	// Minting related variables
 	uint64 private mintPrice = 1000000000;
@@ -28,9 +55,10 @@ contract LotteryToken is ERC721A, Ownable {
 	bool private isOpenToPublic = false;
 
 	// The time at which the collection 
-	uint32 withdrawTime;
+	uint256 private withdrawTime = 0;
 
-	address[] participations;
+	// The list of participations
+	address[] private participations;
 
 	// Coupon for signature verification
 	struct Coupon {
@@ -45,6 +73,29 @@ contract LotteryToken is ERC721A, Ownable {
 
 	// The signer address
 	address private adminSigner;
+
+	/* ------------------- */
+	/* Chainlink Functions */
+	/* ------------------- */
+
+	// Assumes the subscription is funded sufficiently.
+  function requestRandomWords() external onlyOwner {
+    // Will revert if subscription is not set and funded.
+    s_requestId = COORDINATOR.requestRandomWords(
+      keyHash,
+      s_subscriptionId,
+      requestConfirmations,
+      callbackGasLimit,
+      numWords
+    );
+  }
+  
+  function fulfillRandomWords(
+    uint256, /* requestId */
+    uint256[] memory randomWords
+  ) internal override {
+    s_randomWords = randomWords;
+  }
 
 	/* ---------------- */
 	/* Public Functions */
@@ -67,7 +118,8 @@ contract LotteryToken is ERC721A, Ownable {
 
 		// TODO: Make it so minting can only be done if the withdraw time is in the future.
 		// TODO: Add address to the participations 
-		uint256 currentDate = block.timestamp;
+		require(withdrawTime > block.timestamp); // Minting is only possible if the withdraw time is set and is in the future.
+		participations.push(_to);
 
 		_mint(_to, _quantity, "", false);
 
@@ -91,8 +143,9 @@ contract LotteryToken is ERC721A, Ownable {
 		require(msg.value >= ((_quantity * mintPrice) * (1 gwei)), "Error: You aren't paying enough.");
 
 		// TODO: Make it so minting can only be done if if the withdraw time is in the future.
-		// TODO: Add address to the participations 
-		uint256 currentDate = block.timestamp;
+		// TODO: Add address to the participations
+		require(withdrawTime > block.timestamp); // Minting is only possible if the withdraw time is set and is in the future.
+		participations.push(_to);
 
 		// Checking for whitelist key validity
 		bytes32 digest = keccak256(abi.encode(CouponType.Presale, _to));
@@ -115,24 +168,10 @@ contract LotteryToken is ERC721A, Ownable {
 	}
 
 	/**
-	 * @dev Returns the chainid of the contract.
-	*/
-	function contractChain() external view onlyOwner returns (uint) {
-		return block.chainid;
-	}
-
-	/**
 	 * @dev Allows changing the maximum number of tokens. 
 	*/
-	function changeNumberTokens(uint16 _numberOfTokens) external onlyOwner {
+	function changeNumberTokens(uint16 _numberOfTokens) external onlyOwner ownerCanTrigger {
 		numberOfTokens = _numberOfTokens;
-	}
-
-	/** 
-		@dev Returns the current balance of the smart contract.
-	*/
-	function contractBalance() external view onlyOwner returns (uint) {
-		return address(this).balance;
 	}
 
 	/**
@@ -144,7 +183,14 @@ contract LotteryToken is ERC721A, Ownable {
 		- The winners are selected in this function, and their prizes are automatically distributed.
 		- The function uses Chainlink VRF for reliable randomness instead of pseudo-reliable randomness.
 	*/
-	function selectWinnerWithdraw() public payable onlyOwner {
+	function selectWinnerWithdraw() public payable {
+		require(block.timestamp < withdrawTime); // Can't trigger while lottery is ongoing
+		
+		// The owners have a 24h grace period to call it themselves
+		if ((block.timestamp - withdrawTime) < 1 days) {
+			require(msg.sender == owner());
+		}
+
 		uint random = block.timestamp; // TODO: This is just pseudo-randomness
 		uint numberWinners = 10;
 
@@ -205,14 +251,13 @@ contract LotteryToken is ERC721A, Ownable {
 		@dev Opens the Token for Minting to Whitelist. 
 		TODO: Owner can't trigger this function after a certain time
 	*/
-	function openToWhitelist() external onlyOwner {
+	function openToWhitelist() external onlyOwner ownerCanTrigger {
 		isOpenToWhitelist = true;
 		isOpenToPublic = false;
 	}
 
 	/**
 		@dev Opens the Token for Minting to Public.
-		TODO: Owner can't trigger this function after a certain time
 	*/
 	function openToPublic() external onlyOwner {
 		isOpenToWhitelist = false;
@@ -224,7 +269,7 @@ contract LotteryToken is ERC721A, Ownable {
 		Closes it both for Whitelist and Public.
 		TODO: Owner can't trigger this function after a certain time
 	*/
-	function closeMinting() external onlyOwner {
+	function closeMinting() external onlyOwner ownerCanTrigger {
 		isOpenToWhitelist = false;
 		isOpenToPublic = false;
 	}
@@ -232,10 +277,18 @@ contract LotteryToken is ERC721A, Ownable {
 	/**
 		@dev Changes the Minting price to the one specified.
 		@param _mintPrice The new price for minting the token.
-		// TODO: Owner can't trigger this function after a certain
+		// TODO: Owner can't trigger this function after a certain time
 	*/
-	function changeMintPrice(uint _mintPrice) external onlyOwner {
+	function changeMintPrice(uint _mintPrice) external onlyOwner ownerCanTrigger {
 		mintPrice = uint64 (_mintPrice);
+	}
+
+	/**
+		@dev Sets the withdraw time and starts the lottery.
+		// TODO: Owner can't trigger this function after a certain time-
+	*/
+	function setWithdrawTime(uint _date) external onlyOwner ownerCanTrigger {
+		withdrawTime = _date;
 	}
 
 	/* ------------------- */
@@ -265,6 +318,14 @@ contract LotteryToken is ERC721A, Ownable {
 	/* --------- */
 	/* Modifiers */
 	/* --------- */
+
+	/**
+		@dev Modifier to ensure that the owner can only trigger the function before the lottery starts.
+	*/
+	modifier ownerCanTrigger() {
+		require(withdrawTime < block.timestamp, "Lottery: You can't trigger the function before the lottery ends.");
+		_;
+	}
 
 
 }

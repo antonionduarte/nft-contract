@@ -6,7 +6,7 @@ const crypto = require("crypto");
 const signature = require("../whitelist/generate-coupon");
 const fs = require('fs')
 
-describe("Token", function () {
+describe("Advanced Whitelist Token", function () {
   it("Test advanced whitelisting functionality", async function () {
 		const accounts = await ethers.getSigners();
     let mintingKey = "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199";
@@ -17,7 +17,7 @@ describe("Token", function () {
 		const pvtKeyString = pvtKey.toString("hex");
 		const signerAddress = ethers.utils.getAddress(privateToAddress(pvtKey).toString("hex"));
 
-		console.log("HERM: " + signerAddress)
+		// console.log("HERM: " + signerAddress)
 
 		const receiver = ethers.utils.getAddress(mintingKey);
 

@@ -31,8 +31,8 @@ contract ReducedContract is ERC721A, Ownable {
 	) public payable {
 		if (!isOpenToPublic) {
 			require(isOpenToWhitelist);
-				bytes32 digest = keccak256(abi.encode(0, _to));
-				require(_isVerifiedCoupon(digest, _coupon), "Error: Invalid Signature, you might not be registered in the WL.");
+			bytes32 digest = keccak256(abi.encode(0, _to));
+			require(_isVerifiedCoupon(digest, _coupon), "Error: Invalid Signature, you might not be registered in the WL.");
 		} else require (isOpenToPublic);
 		
 		require(_quantity > 0, "Error: You need to Mint more than one Token.");

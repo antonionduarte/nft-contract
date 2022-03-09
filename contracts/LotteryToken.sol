@@ -102,58 +102,27 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 	/* ---------------- */
 
 	/**
-		@dev The publicMint function, that requires a payment.
-		@param _quantity The quantity of NFTs that are trying to be minted.
-		TODO: Make it so minting can only be done if if the withdraw time is in the future.
-	*/
-	function publicMint(
-		address _to,
-		uint _quantity
-	) external payable {
-		require(isOpenToPublic, "Error: The NFT isn't open for public minting yet.");
-		require(_quantity > 0, "Error: You need to Mint more than one Token.");
-		require(_quantity + totalSupply() < numberOfTokens, "Error: The quantity you're trying to mint excceeds the total supply");
-		require(_quantity + _addressData[_to].numberMinted <= maxNumberMints, "Error: You can't mint that quantity of tokens.");
-		require(msg.value >= ((_quantity * mintPrice) * (1 gwei)), "Error: You aren't paying enough.");
-
-		// TODO: Make it so minting can only be done if the withdraw time is in the future.
-		// TODO: Add address to the participations 
-		require(withdrawTime > block.timestamp); // Minting is only possible if the withdraw time is set and is in the future.
-		participations.push(_to);
-
-		_mint(_to, _quantity, "", false);
-
-		// TODO: Automatically handle comissions.
-	}
-
-	/**
-		@dev The function to use when minting during opened whitelist.
-		@param _quantity The quantity of NFTs to mint.
-		@param _coupon The coupon to validate the whitelist spot.
-	*/
-	function whitelistMint(
+		@dev Function that allows minting of an NFT.
+	 */
+	function mint(
 		address _to,
 		uint _quantity,
-		Coupon memory _coupon
+		Coupon calldata _coupon
 	) external payable {
-		require(isOpenToWhitelist);
+		if (!isOpenToPublic) {
+			require(isOpenToWhitelist);
+			bytes32 digest = keccak256(abi.encode(0, _to));
+			require(_isVerifiedCoupon(digest, _coupon), "Error: Invalid Signature, you might not be registered in the WL.");
+		} else require (isOpenToPublic);
+		
 		require(_quantity > 0, "Error: You need to Mint more than one Token.");
-		require(_quantity + totalSupply() < numberOfTokens, "Error: The quantity you're trying to mint excceeds the total supply");
-		require(_quantity + _addressData[_to].numberMinted <= maxNumberMints, "Error: You can't mint that quantity of tokens.");	
+		require(_quantity + totalSupply() < 15, "Error: The quantity you're trying to mint excceeds the total supply");
+		require(_quantity + _addressData[_to].numberMinted <= 5, "Error: You can't mint that quantity of tokens.");
 		require(msg.value >= ((_quantity * mintPrice) * (1 gwei)), "Error: You aren't paying enough.");
-
-		// TODO: Make it so minting can only be done if if the withdraw time is in the future.
-		// TODO: Add address to the participations
 		require(withdrawTime > block.timestamp); // Minting is only possible if the withdraw time is set and is in the future.
+
 		participations.push(_to);
-
-		// Checking for whitelist key validity
-		bytes32 digest = keccak256(abi.encode(CouponType.Presale, _to));
-		require(_isVerifiedCoupon(digest, _coupon), "Error: Invalid Signature, you might not be registered in the WL.");
-
 		_mint(_to, _quantity, "", false);
-
-		// TODO: Automatically handle comissions.
 	}
 
 	/* ------------------------ */

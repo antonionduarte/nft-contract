@@ -178,7 +178,6 @@ contract TokenWhitelist is ERC721A, Ownable {
 	{
 		// address signer = digest.recover(signature);
 		address signer = ecrecover(_digest, _coupon.v, _coupon.r, _coupon.s);
-		console.log(signer);
 		require(signer != address(0), 'ECDSA: Invalid signature'); // Added check for zero address
 		return signer == adminSigner;
 	}

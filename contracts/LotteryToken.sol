@@ -20,32 +20,28 @@ import "hardhat/console.sol";
 contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 	constructor(uint64 subscriptionId) VRFConsumerBaseV2(vrfCoordinator) ERC721A("TokenWhitelist", "TKN") {
 		COORDINATOR = VRFCoordinatorV2Interface(vrfCoordinator);
-    LINKTOKEN = LinkTokenInterface(link);
+		LINKTOKEN = LinkTokenInterface(link);
 		adminSigner = msg.sender;
-    s_owner = msg.sender;
-    s_subscriptionId = subscriptionId;
+		s_owner = msg.sender;
+		s_subscriptionId = subscriptionId;
 	}
 
 	// Chainlink related configs.
 	// TODO: Change them to work for the Mainnet.
 	VRFCoordinatorV2Interface COORDINATOR;
-  LinkTokenInterface LINKTOKEN;
+	LinkTokenInterface LINKTOKEN;
 	
-
 	uint64 s_subscriptionId;
-
 	address vrfCoordinator = 0x6168499c0cFfCaCD319c818142124B7A15E857ab; // TODO: Currently set for Rinkeby, change for Mainnet.
 	address link = 0x01BE23585060835E02B77ef475b0Cc51aA1e0709;
 	bytes32 keyHash = 0xd89b2bf150e3b9e13446986e571fb9cab24b13cea0a43ea20a6049a85cc807cc;
-  uint32 callbackGasLimit = 100000;
-  uint16 requestConfirmations = 3;
+	uint32 callbackGasLimit = 100000;
+	uint16 requestConfirmations = 3;
 	uint32 numWords =  1;
-
 	uint256[] public s_randomWords; // Where the random values are stored 
-
-  uint256 public s_requestId;
-  address s_owner;
-	
+	uint256 public s_requestId;
+	address s_owner;
+		
 	// Minting related variables
 	uint64 private mintPrice = 1000000000;
 	uint16 private numberOfTokens = 15;
@@ -53,12 +49,10 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 
 	bool private isOpenToWhitelist = false;
 	bool private isOpenToPublic = false;
+	bool private isWinnerSelected = false;
 
 	// The time at which the collection 
 	uint256 private withdrawTime = 0;
-
-	// The list of participations
-	address[] private participations;
 
 	// Coupon for signature verification
 	struct Coupon {
@@ -71,7 +65,36 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 		Presale
 	}
 
-	// The signer address
+	// Participation in the raffle:
+	struct ParticipationEntry {
+		address participant;
+		bool prizeClaimed;
+	}
+
+	// The list of participations
+	ParticipationEntry[] private participations;
+
+	// Percentages (Comissions and Prizes)
+	uint16 constant developerPercentage = 2;
+
+	uint16 constant FIRST_PRIZE_PERCENTAGE = 4; // TODO: Change -> should correspond to around 50 eth.
+	uint16 constant SECOND_PRIZE_PERCENTAGE = 3; // TODO: Change -> should correspond to around 10 eth.
+	uint16 constant THIRD_PRIZE_PERCENTAGE = 2; // TODO: Change -> should correspond to around 5 eth.
+	uint16 constant FOURTH_PRIZE_PERCENTAGE = 1; // TODO: Change -> should correspond to around 0.1 eth.
+
+	uint16 constant NUMBER_PRIZES = 556;
+
+	uint16 constant NUMBER_FIRST_PRIZE = 1;
+	uint16 constant NUMBER_SECOND_PRIZE = 5;
+	uint16 constant NUMBER_THIRD_PRIZE = 50;
+	uint16 constant NUMBER_FOURTH_PRIZE = 500;
+
+	uint16 firstPrize; // TODO: [ASSIGN]
+	uint16 secondPrize; // TODO: [ASSIGN]
+	uint16 thirdPrize; // TODO: [ASSIGN]
+	uint16 fourthPrize; // TODO: [ASSIGN]
+
+	// The signer address (Whitelist)
 	address private adminSigner;
 
 	/* ------------------- */
@@ -79,23 +102,23 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 	/* ------------------- */
 
 	// Assumes the subscription is funded sufficiently.
-  function requestRandomWords() external onlyOwner {
-    // Will revert if subscription is not set and funded.
-    s_requestId = COORDINATOR.requestRandomWords(
-      keyHash,
-      s_subscriptionId,
-      requestConfirmations,
-      callbackGasLimit,
-      numWords
-    );
-  }
+	function requestRandomWords() external onlyOwner {
+	// Will revert if subscription is not set and funded.
+		s_requestId = COORDINATOR.requestRandomWords(
+		keyHash,
+		s_subscriptionId,
+		requestConfirmations,
+		callbackGasLimit,
+		numWords
+	);
+	}
   
-  function fulfillRandomWords(
-    uint256, /* requestId */
-    uint256[] memory randomWords
-  ) internal override {
-    s_randomWords = randomWords;
-  }
+	function fulfillRandomWords(
+		uint256, /* requestId */
+		uint256[] memory randomWords
+		) internal override {
+		s_randomWords = randomWords;
+	}
 
 	/* ---------------- */
 	/* Public Functions */
@@ -120,8 +143,10 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 		require(_quantity + _addressData[_to].numberMinted <= 5, "Error: You can't mint that quantity of tokens.");
 		require(msg.value >= ((_quantity * mintPrice) * (1 gwei)), "Error: You aren't paying enough.");
 		require(withdrawTime > block.timestamp); // Minting is only possible if the withdraw time is set and is in the future.
-
+		
+		// TODO: Create new participation entry and push it.
 		participations.push(_to);
+
 		_mint(_to, _quantity, "", false);
 	}
 
@@ -145,15 +170,24 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 
 	/**
 		@dev Transfers funds to a specific wallet.
-		TODO: Change this function to do what was specified.
-		- Only allows for withdrawing after the selected date.
-		- The owner has a 24h grace period after that date where he can select the winner.
-		- After the owner's grace period anyone can select the winner.
-		- The winners are selected in this function, and their prizes are automatically distributed.
-		- The function uses Chainlink VRF for reliable randomness instead of pseudo-reliable randomness.
+
+		TODO: All of this logic must be replaced.
+		New logic:
+		- This function selects a random number to act as the winning number.
+
+		TODO: This function must not be callable twice.
+		TODO: This function must select the percentages that each winner gets.
+
+		TODO: [DEPRECATED] Change this function to do what was specified.
+			- Only allows for withdrawing after the selected date.
+			- The owner has a 24h grace period after that date where he can select the winner.
+			- After the owner's grace period anyone can select the winner.
+			- The winners are selected in this function, and their prizes are automatically distributed.
+			- The function uses Chainlink VRF for reliable randomness instead of pseudo-reliable randomness.
 	*/
 	function selectWinnerWithdraw() public payable {
 		require(block.timestamp < withdrawTime); // Can't trigger while lottery is ongoing
+		require(!isWinnerSelected); // If winner is selected can't re-run it
 		
 		// The owners have a 24h grace period to call it themselves
 		if ((block.timestamp - withdrawTime) < 1 days) {
@@ -175,50 +209,43 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 			console.log(expandedValues[i]);
 		}
 
-		// First place - One winner - 50%
-		address firstPlace = participations[expandedValues[0]];
+		// Comission distribution logic: TODO.
 
-		// Second place - Three winners - 20 %
-		address secondPlace = participations[expandedValues[1]];
-		address thirdPlace = participations[expandedValues[2]];
-		address fourthPlace = participations[expandedValues[3]];
-		
-		// Third place - Six winners - 10% 
-		address fifthPlace = participations[expandedValues[4]];
-		address sixthPlace = participations[expandedValues[5]];
-		address seventhPlace = participations[expandedValues[6]];
-		address eighthPlace = participations[expandedValues[7]];
-		address ninthPlace = participations[expandedValues[8]];
-		address tenthPlace = participations[expandedValues[9]];
+		// Prize value selection logic:
+		firstPrize = address(this).balance * FIRST_PRIZE_PERCENTAGE / 100;
+		secondPrize = address(this).balance * SECOND_PRIZE_PERCENTAGE / 100;
+		thirdPrize = address(this).balance * THIRD_PRIZE_PERCENTAGE / 100;
+		fourthPrize = address(this).balance * FOURTH_PRIZE_PERCENTAGE / 100;
 
-		// Comissions - Remaining 20%
-		// TODO: Comission Addresses
-
-		uint firstPlaceValue = (address(this).balance * 5 / 100);
-		uint secondPlaceValue = (address(this).balance * 2 / 100) / 3;
-		uint thirdPlaceValue = (address(this).balance * 1 / 100) / 6;
-
-		// Payment distribution logic
-		(bool success, ) = payable(firstPlace).call{ value: firstPlaceValue }("");
-		(success, ) = payable(secondPlace).call{ value: secondPlaceValue }("");
-		(success, ) = payable(thirdPlace).call{ value: secondPlaceValue }("");
-		(success, ) = payable(fourthPlace).call{ value: secondPlaceValue }("");
-		(success, ) = payable(fifthPlace).call{ value: thirdPlaceValue }("");
-		(success, ) = payable(sixthPlace).call{ value: thirdPlaceValue }("");
-		(success, ) = payable(seventhPlace).call{ value: thirdPlaceValue }("");
-		(success, ) = payable(eighthPlace).call{ value: thirdPlaceValue }("");
-		(success, ) = payable(ninthPlace).call{ value: thirdPlaceValue }("");
-		(success, ) = payable(tenthPlace).call{ value: thirdPlaceValue }("");
-
-		// Comission distribution logic
 		// TODO: Send a percentage to me
-		// TODO: All the rest of the money goes to the devs, if one of the payments failed they can manually
-		// 			 Take care of finishing it later.
+
+		isWinnerSelected = true;
+	}
+
+	// TODO: [MOST IMPORTANT FUNCTION]
+	function claimPrize() payable external public {
+		require(isWinnerSelected); // Require that the winner is already selected.
+
+		int totalPrize = 0;
+
+		for (uint i = 0; i < NUMBER_PRIZES; i++) {
+			// TODO: expand the value, calculate the prize, add it to total prize if not claimed
+			// Change the claim state of each participation to true.
+		}
+
+		if (totalPrize > 0) {
+			// TODO: Transfer logic.
+		}
+	}
+
+	function showWinners external view onlyOwner {
+		// TODO: Send the array of winners.
 	}
 	
 	/**
 		@dev Opens the Token for Minting to Whitelist. 
-		TODO: Owner can't trigger this function after a certain time
+		TODO: Owner can't trigger this function after a certain time.
+		TODO: HmMmm... maybe this shouldn't even be a thing?
 	*/
 	function openToWhitelist() external onlyOwner ownerCanTrigger {
 		isOpenToWhitelist = true;
@@ -236,7 +263,6 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 	/**
 		@dev Closes the Token for Minting.
 		Closes it both for Whitelist and Public.
-		TODO: Owner can't trigger this function after a certain time
 	*/
 	function closeMinting() external onlyOwner ownerCanTrigger {
 		isOpenToWhitelist = false;
@@ -246,7 +272,6 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 	/**
 		@dev Changes the Minting price to the one specified.
 		@param _mintPrice The new price for minting the token.
-		// TODO: Owner can't trigger this function after a certain time
 	*/
 	function changeMintPrice(uint _mintPrice) external onlyOwner ownerCanTrigger {
 		mintPrice = uint64 (_mintPrice);
@@ -254,7 +279,6 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 
 	/**
 		@dev Sets the withdraw time and starts the lottery.
-		// TODO: Owner can't trigger this function after a certain time-
 	*/
 	function setWithdrawTime(uint _date) external onlyOwner ownerCanTrigger {
 		withdrawTime = _date;
@@ -295,6 +319,5 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 		require(withdrawTime < block.timestamp, "Lottery: You can't trigger the function before the lottery ends.");
 		_;
 	}
-
 
 }

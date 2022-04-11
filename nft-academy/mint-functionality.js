@@ -1,6 +1,4 @@
-<script src="https://cdn.ethers.io/lib/ethers-5.1.umd.min.js" type="text/javascript"></script>
 
-<script>
 
 const maxNFT = 3 //Max NFTs per transaction
 const buttonId = "connect" //This is the button ID you need to link which will change from connect wallet to mint now
@@ -157,4 +155,3 @@ async function mintToken()
 }
 
 bt.onclick = connect
-</script>

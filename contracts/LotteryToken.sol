@@ -68,11 +68,17 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 	// Participation in the raffle:
 	struct ParticipationEntry {
 		address participant;
+		bool prizeClaimed; // TODO: Possibly delete
+	}
+
+	struct Winner {
+		address winner; 
 		bool prizeClaimed;
 	}
 
 	// The list of participations
 	ParticipationEntry[] private participations;
+	Winners[] private winners;
 
 	// Percentages (Comissions and Prizes)
 	uint16 constant developerPercentage = 2;
@@ -199,9 +205,9 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 
 		uint256[] memory expandedValues;
 
-		// Expand one random value into 10 random values by hashing
+		// Expand one random value into x random values by hashing
 		for (uint i = 0; i < numberWinners; i++) {
-			expandedValues[i] = uint256(keccak256(abi.encode(random, i))) % participations.length;
+			expandedValues[i] = uint256(keccak256(abi.encode(random, i)));
 		}
 
 		// TODO: Delete, just for testing purposes
@@ -210,14 +216,13 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 		}
 
 		// Comission distribution logic: TODO.
+		// TODO: Send a percentage to me
 
 		// Prize value selection logic:
 		firstPrize = address(this).balance * FIRST_PRIZE_PERCENTAGE / 100;
 		secondPrize = address(this).balance * SECOND_PRIZE_PERCENTAGE / 100;
 		thirdPrize = address(this).balance * THIRD_PRIZE_PERCENTAGE / 100;
 		fourthPrize = address(this).balance * FOURTH_PRIZE_PERCENTAGE / 100;
-
-		// TODO: Send a percentage to me
 
 		isWinnerSelected = true;
 	}
@@ -228,9 +233,18 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 
 		int totalPrize = 0;
 
+		uint256[] memory expandedValues;
+
+		for (uint i = 0; i < numberWinners; i++) {
+			expandedValues[i] = uint256(keccak256(abi.encode(random, i)))
+		}
+
 		for (uint i = 0; i < NUMBER_PRIZES; i++) {
 			// TODO: expand the value, calculate the prize, add it to total prize if not claimed
 			// Change the claim state of each participation to true.
+
+
+
 		}
 
 		if (totalPrize > 0) {

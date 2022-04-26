@@ -207,7 +207,7 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 
 		// Expand one random value into x random values by hashing
 		for (uint i = 0; i < numberWinners; i++) {
-			expandedValues[i] = uint256(keccak256(abi.encode(random, i)));
+			expandedValues[i] = uint256(keccak256(abi.encode(random, i))) % NUMBER_PRIZES; 
 		}
 
 		// TODO: Delete, just for testing purposes

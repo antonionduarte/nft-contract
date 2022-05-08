@@ -65,20 +65,14 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 		Presale
 	}
 
-	// Participation in the raffle:
-	struct ParticipationEntry {
-		address participant;
-		bool prizeClaimed; // TODO: Possibly delete
-	}
-
 	struct Winner {
 		address winner; 
 		bool prizeClaimed;
 	}
 
 	// The list of participations
-	ParticipationEntry[] private participations;
-	Winners[] private winners;
+	address[] private participations;
+	Winner[] private winners;
 
 	// Percentages (Comissions and Prizes)
 	uint16 constant developerPercentage = 2;
@@ -201,58 +195,53 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 		}
 
 		uint random = block.timestamp; // TODO: This is just pseudo-randomness
-		uint numberWinners = 10;
-
-		uint256[] memory expandedValues;
 
 		// Expand one random value into x random values by hashing
-		for (uint i = 0; i < numberWinners; i++) {
-			expandedValues[i] = uint256(keccak256(abi.encode(random, i))) % NUMBER_PRIZES; 
-		}
-
-		// TODO: Delete, just for testing purposes
-		for (uint i = 0; i < numberWinners; i++) {
-			console.log(expandedValues[i]);
+		for (uint i = 0; i < NUMBER_PRIZES; i++) {
+			uint256 winnerIndex = uint256(keccak256(abi.encode(random, i))) % participations.length;
+			Winner memory winner = Winner(participations[winnerIndex], false);
+			winners.push(winner);
 		}
 
 		// Comission distribution logic: TODO.
 		// TODO: Send a percentage to me
 
 		// Prize value selection logic:
-		firstPrize = address(this).balance * FIRST_PRIZE_PERCENTAGE / 100;
-		secondPrize = address(this).balance * SECOND_PRIZE_PERCENTAGE / 100;
-		thirdPrize = address(this).balance * THIRD_PRIZE_PERCENTAGE / 100;
-		fourthPrize = address(this).balance * FOURTH_PRIZE_PERCENTAGE / 100;
+		firstPrize = uint16 (address(this).balance * FIRST_PRIZE_PERCENTAGE / 100);
+		secondPrize = uint16 (address(this).balance * SECOND_PRIZE_PERCENTAGE / 100);
+		thirdPrize = uint16 (address(this).balance * THIRD_PRIZE_PERCENTAGE / 100);
+		fourthPrize = uint16 (address(this).balance * FOURTH_PRIZE_PERCENTAGE / 100);
 
 		isWinnerSelected = true;
 	}
 
 	// TODO: [MOST IMPORTANT FUNCTION]
-	function claimPrize() payable external public {
+	function claimPrize() payable external {
 		require(isWinnerSelected); // Require that the winner is already selected.
 
 		int totalPrize = 0;
 
 		uint256[] memory expandedValues;
 
-		for (uint i = 0; i < numberWinners; i++) {
-			expandedValues[i] = uint256(keccak256(abi.encode(random, i)))
-		}
-
+		/**
+		TODO:
+			- random might be wront
+			- NUMBER_PRIZES is wrong
+		*/
+		
+		// TODO: This function also needs to calculate the total prize of some winner
+		// (sum of it's prizes)
 		for (uint i = 0; i < NUMBER_PRIZES; i++) {
-			// TODO: expand the value, calculate the prize, add it to total prize if not claimed
-			// Change the claim state of each participation to true.
-
-
-
-		}
-
-		if (totalPrize > 0) {
-			// TODO: Transfer logic.
+			if (msg.sender == winners[i].winner) {
+				if (!winners[i].prizeClaimed) {
+					// TODO: transfer the prize yadda yadda
+					winners[i].prizeClaimed = false;
+				}
+			}
 		}
 	}
 
-	function showWinners external view onlyOwner {
+	function showWinners() external view onlyOwner {
 		// TODO: Send the array of winners.
 	}
 	

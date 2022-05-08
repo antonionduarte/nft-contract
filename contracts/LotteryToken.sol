@@ -12,7 +12,7 @@ import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 import "hardhat/console.sol";
 
 /**
-	@dev Implementation of BlackGold Token, using the [ERC721A] standard for optimized
+	@dev Implementation of Lottery Token, using the [ERC721A] standard for optimized
 	gas costs, specially when batch minting Tokens.
 
 	This token works exclusively in a Whitelist so there is no need to close and open whitelist.
@@ -49,6 +49,7 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 
 	bool private isOpenToWhitelist = false;
 	bool private isOpenToPublic = false;
+	bool private withdrawSelected = false;
 	bool private isWinnerSelected = false;
 
 	// The time at which the collection 
@@ -89,10 +90,10 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 	uint16 constant NUMBER_THIRD_PRIZE = 50;
 	uint16 constant NUMBER_FOURTH_PRIZE = 500;
 
-	uint16 firstPrize; // TODO: [ASSIGN]
-	uint16 secondPrize; // TODO: [ASSIGN]
-	uint16 thirdPrize; // TODO: [ASSIGN]
-	uint16 fourthPrize; // TODO: [ASSIGN]
+	uint16 firstPrize; // TODO: [ASSIGN] [DONE]
+	uint16 secondPrize; // TODO: [ASSIGN] [DONE]
+	uint16 thirdPrize; // TODO: [ASSIGN] [DONE]
+	uint16 fourthPrize; // TODO: [ASSIGN] [DONE]
 
 	// The signer address (Whitelist)
 	address private adminSigner;
@@ -169,24 +170,19 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 	}
 
 	/**
-		@dev Transfers funds to a specific wallet.
+		@dev Selects the winner and places the winners on a table.
 
-		TODO: All of this logic must be replaced.
-		New logic:
-		- This function selects a random number to act as the winning number.
+		TODO: This function must not be callable twice. [DONE]
+		TODO: This function must select the percentages that each winner gets. [DONE]
 
-		TODO: This function must not be callable twice.
-		TODO: This function must select the percentages that each winner gets.
-
-		TODO: [DEPRECATED] Change this function to do what was specified.
-			- Only allows for withdrawing after the selected date.
-			- The owner has a 24h grace period after that date where he can select the winner.
-			- After the owner's grace period anyone can select the winner.
-			- The winners are selected in this function, and their prizes are automatically distributed.
+		TODO:
+			- Only allows for withdrawing after the selected date. [DONE] 
+			- The owner has a 24h grace period after that date where he can select the winner. [DONE]
+			- After the owner's grace period anyone can select the winner. [DONE]
+			- The winners are selected in this function. [DONE]
 			- The function uses Chainlink VRF for reliable randomness instead of pseudo-reliable randomness.
 	*/
-	function selectWinnerWithdraw() public payable {
-		require(block.timestamp < withdrawTime); // Can't trigger while lottery is ongoing
+	function selectWinnerWithdraw() public payable ownerCanTrigger {
 		require(!isWinnerSelected); // If winner is selected can't re-run it
 		
 		// The owners have a 24h grace period to call it themselves
@@ -196,7 +192,7 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 
 		uint random = block.timestamp; // TODO: This is just pseudo-randomness
 
-		// Expand one random value into x random values by hashing
+		// Expand one random value into x random values by encoding and hashing
 		for (uint i = 0; i < NUMBER_PRIZES; i++) {
 			uint256 winnerIndex = uint256(keccak256(abi.encode(random, i))) % participations.length;
 			Winner memory winner = Winner(participations[winnerIndex], false);
@@ -219,25 +215,32 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 	function claimPrize() payable external {
 		require(isWinnerSelected); // Require that the winner is already selected.
 
-		int totalPrize = 0;
-
-		uint256[] memory expandedValues;
-
-		/**
-		TODO:
-			- random might be wront
-			- NUMBER_PRIZES is wrong
-		*/
-		
-		// TODO: This function also needs to calculate the total prize of some winner
-		// (sum of it's prizes)
+		int totalPrize = 0;		
 		for (uint i = 0; i < NUMBER_PRIZES; i++) {
 			if (msg.sender == winners[i].winner) {
 				if (!winners[i].prizeClaimed) {
-					// TODO: transfer the prize yadda yadda
-					winners[i].prizeClaimed = false;
+					if (i == 0) {
+						totalPrize += firstPrize;
+					}
+					else if (i == 1 || i == 2 || i == 3 || i == 4 || i == 5) {
+						totalPrize += secondPrize;
+					}
+					else if (i >= 6 && i <= 56) {
+						totalPrize += thirdPrize;
+					}
+					else {
+						totalPrize += fourthPrize;
+					}
+					
+					winners[i].prizeClaimed = true;
 				}
 			}
+		}
+
+		// transfer prize
+		if (totalPrize > 0) {
+			(bool success, ) = payable(msg.sender).call{ value: totalPrize }("");
+			require(success);
 		}
 	}
 
@@ -250,7 +253,7 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 		TODO: Owner can't trigger this function after a certain time.
 		TODO: HmMmm... maybe this shouldn't even be a thing?
 	*/
-	function openToWhitelist() external onlyOwner ownerCanTrigger {
+	function openToWhitelist() external onlyOwner {
 		isOpenToWhitelist = true;
 		isOpenToPublic = false;
 	}
@@ -267,7 +270,7 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 		@dev Closes the Token for Minting.
 		Closes it both for Whitelist and Public.
 	*/
-	function closeMinting() external onlyOwner ownerCanTrigger {
+	function closeMinting() external onlyOwner {
 		isOpenToWhitelist = false;
 		isOpenToPublic = false;
 	}
@@ -283,7 +286,10 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 	/**
 		@dev Sets the withdraw time and starts the lottery.
 	*/
-	function setWithdrawTime(uint _date) external onlyOwner ownerCanTrigger {
+	function setWithdrawTime(uint _date) external onlyOwner {
+		require(!withdrawSelected);
+
+		withdrawSelected = true;
 		withdrawTime = _date;
 	}
 

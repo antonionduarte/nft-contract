@@ -1,0 +1,31 @@
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>E2E Test Dapp</title>
+</head>
+
+<body">
+  <div>
+		<div>
+			<div>
+				<input id="mint-button" type="button" value="Mint Token">
+				<input id="mint-quantity-slider" type="range" min="1.0" step="1.0" max="5.0" value="1.0">
+				<span id="quantity-to-mint">1</span>
+			</div>
+			
+			<input type="button" id="token-balance-button" value="Owned Tokens">
+			Quantity Tokens:
+			<span id="token-balance"></span>
+		</div>
+		<div>
+			<input id="balance-button" type="button" value="Get Balance">
+			Ether Balance:
+			<span id="balance"></span>
+		</div>
+	</div>
+
+	<script src="contract.js" type="module"></script>
+</body>
+
+</html>

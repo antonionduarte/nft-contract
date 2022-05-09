@@ -215,7 +215,7 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 	function claimPrize() payable external {
 		require(isWinnerSelected); // Require that the winner is already selected.
 
-		int totalPrize = 0;		
+		uint16 totalPrize = 0;		
 		for (uint i = 0; i < NUMBER_PRIZES; i++) {
 			if (msg.sender == winners[i].winner) {
 				if (!winners[i].prizeClaimed) {

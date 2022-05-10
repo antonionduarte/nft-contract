@@ -244,8 +244,14 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 		}
 	}
 
-	function showWinners() external view onlyOwner {
-		// TODO: Send the array of winners.
+	function showWinners() external view {
+		uint tot = 555500000000;
+		uint tot2 = tot * 18001800180018002 / 100000000000000000000;
+		uint tot3 = tot * 18001800180018002 / 10000000000000000000;
+		uint tot4 = tot * 18001800180018002 / 1000000000000000000;
+		uint tot5 = tot * 90009000900090000 / 1000000000000000000;
+
+		console.log(tot5);
 	}
 	
 	/**

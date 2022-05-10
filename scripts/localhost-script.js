@@ -18,14 +18,16 @@ async function main() {
 
 	const adminSigner = ethers.utils.getAddress("0x402a4189b1d72EdFBc9dfEb7771e4A5549B43531") 
 
-  const Token = await hre.ethers.getContractFactory("TokenWhitelist");
-  const token = await Token.deploy(adminSigner);
+  const Token = await hre.ethers.getContractFactory("LotteryToken");
+  const token = await Token.deploy(1);
 
   await token.deployed();
 
 	await token.openToWhitelist();
 
   console.log("Token deployed to:", token.address);
+
+  await token.showWinners();
 }
 
 // We recommend this pattern to be able to use async/await everywhere

@@ -47,8 +47,23 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 	uint16 private numberOfTokens = 15;
 	uint16 private maxNumberMints = 5; 
 
-	bool private isOpenToWhitelist = false;
-	bool private isOpenToPublic = false;
+	/**
+	 *  
+	 *	0 -> [Closed]
+	 *	1 -> [Whitelist]
+	 *		Ballers -> Mint (2)
+	 *		Stacked -> Mint (1)
+	 *	
+	 * 	2 -> [Community FFA]
+	 *		Ballers -> Mint (2)
+	 * 		Stacked -> Mint (1)
+	 *		Community -> Mint (1)
+	 *		
+	 *	3 -> [Public]
+	 *		Everyone -> Mint (3)
+	*/
+	uint16 private mintingPhase = 0;
+
 	bool private withdrawSelected = false;
 	bool private isWinnerSelected = false;
 
@@ -63,25 +78,19 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 	}
 
 	enum CouponType {
-		Presale
+		Ballers,
+		Stacked,
+		Community
 	}
 
 	struct Winner {
-		address winner; 
-		bool prizeClaimed;
+		uint winner; // winner NFT index in the ERC721A array  
+		bool prizeClaimed; // was the prize already claimed?
 	}
 
 	// The list of participations
 	address[] private participations;
 	Winner[] private winners;
-
-	// Percentages (Comissions and Prizes)
-	uint16 constant developerPercentage = 2;
-
-	uint16 constant FIRST_PRIZE_PERCENTAGE = 4; // TODO: Change -> should correspond to around 50 eth.
-	uint16 constant SECOND_PRIZE_PERCENTAGE = 3; // TODO: Change -> should correspond to around 10 eth.
-	uint16 constant THIRD_PRIZE_PERCENTAGE = 2; // TODO: Change -> should correspond to around 5 eth.
-	uint16 constant FOURTH_PRIZE_PERCENTAGE = 1; // TODO: Change -> should correspond to around 0.1 eth.
 
 	uint16 constant NUMBER_PRIZES = 556;
 
@@ -106,18 +115,18 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 	function requestRandomWords() external onlyOwner {
 	// Will revert if subscription is not set and funded.
 		s_requestId = COORDINATOR.requestRandomWords(
-		keyHash,
-		s_subscriptionId,
-		requestConfirmations,
-		callbackGasLimit,
-		numWords
-	);
+			keyHash,
+			s_subscriptionId,
+			requestConfirmations,
+			callbackGasLimit,
+			numWords
+		);
 	}
   
 	function fulfillRandomWords(
 		uint256, /* requestId */
 		uint256[] memory randomWords
-		) internal override {
+	) internal override {
 		s_randomWords = randomWords;
 	}
 
@@ -133,20 +142,52 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 		uint _quantity,
 		Coupon calldata _coupon
 	) external payable {
-		if (!isOpenToPublic) {
-			require(isOpenToWhitelist);
-			bytes32 digest = keccak256(abi.encode(0, _to));
-			require(_isVerifiedCoupon(digest, _coupon), "Error: Invalid Signature, you might not be registered in the WL.");
-		} else require (isOpenToPublic);
+		uint quantityCanMint = 0;
+
+		if (!(mintingPhase == 3)) {
+			require(mintingPhase > 0, "Error: Minting Closed");
+
+			CouponType personalCoupon;
+			bool couponVerified = false;
+	
+			bytes32 digestBallers = keccak256(abi.encode(CouponType.Ballers, _to));
+			bytes32 digestStacked = keccak256(abi.encode(CouponType.Stacked, _to));
+			bytes32 digestCommunity = keccak256(abi.encode(CouponType.Community, _to));
+
+			if (_isVerifiedCoupon(digestBallers, _coupon)) {
+				personalCoupon = CouponType.Ballers;
+				quantityCanMint = 2;
+				couponVerified = true;
+			}
+			else if (_isVerifiedCoupon(digestStacked, _coupon)) {
+				personalCoupon = CouponType.Stacked;
+				quantityCanMint = 1;
+				couponVerified = true;
+			}
+			else if (_isVerifiedCoupon(digestCommunity, _coupon)) {
+				personalCoupon = CouponType.Community;
+				quantityCanMint = 1;
+				couponVerified = true;
+			}
+
+			require(couponVerified, "Error: You have no key, wait for the public mint"); 
+
+			if (mintingPhase == 1) {
+				require(personalCoupon == CouponType.Ballers || personalCoupon == CouponType.Stacked);
+			} 
+			else if (mintingPhase == 2) {
+				require(personalCoupon == CouponType.Ballers || personalCoupon == CouponType.Stacked);
+			}
+		
+		} else require (mintingPhase == 3);
+
+		if (mintingPhase == 3) quantityCanMint = 3;
 		
 		require(_quantity > 0, "Error: You need to Mint more than one Token.");
 		require(_quantity + totalSupply() < 15, "Error: The quantity you're trying to mint excceeds the total supply");
-		require(_quantity + _addressData[_to].numberMinted <= 5, "Error: You can't mint that quantity of tokens.");
+		require(_quantity + _addressData[_to].numberMinted <= quantityCanMint, "Error: You can't mint that quantity of tokens.");
 		require(msg.value >= ((_quantity * mintPrice) * (1 gwei)), "Error: You aren't paying enough.");
 		require(withdrawTime > block.timestamp); // Minting is only possible if the withdraw time is set and is in the future.
-		
-		// TODO: Create new participation entry and push it.
-		participations.push(_to);
 
 		_mint(_to, _quantity, "", false);
 	}
@@ -194,19 +235,18 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 
 		// Expand one random value into x random values by encoding and hashing
 		for (uint i = 0; i < NUMBER_PRIZES; i++) {
-			uint256 winnerIndex = uint256(keccak256(abi.encode(random, i))) % participations.length;
-			Winner memory winner = Winner(participations[winnerIndex], false);
+			uint256 winnerIndex = uint256(keccak256(abi.encode(random, i))) % super.totalSupply();
+			Winner memory winner = Winner(winnerIndex, false);
 			winners.push(winner);
 		}
 
-		// Comission distribution logic: TODO.
-		// TODO: Send a percentage to me
-
 		// Prize value selection logic:
-		firstPrize = uint16 (address(this).balance * FIRST_PRIZE_PERCENTAGE / 100);
-		secondPrize = uint16 (address(this).balance * SECOND_PRIZE_PERCENTAGE / 100);
-		thirdPrize = uint16 (address(this).balance * THIRD_PRIZE_PERCENTAGE / 100);
-		fourthPrize = uint16 (address(this).balance * FOURTH_PRIZE_PERCENTAGE / 100);
+		firstPrize = uint16 (address(this).balance *  90009000900090000 / 1000000000000000000);
+		secondPrize = uint16 (address(this).balance * 18001800180018002 / 1000000000000000000);
+		thirdPrize = uint16 (address(this).balance *  18001800180018002 / 10000000000000000000);
+		fourthPrize = uint16 (address(this).balance * 18001800180018002 / 100000000000000000000);
+
+		// Comission distribution logic: TODO.
 
 		isWinnerSelected = true;
 	}
@@ -217,7 +257,7 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 
 		uint16 totalPrize = 0;		
 		for (uint i = 0; i < NUMBER_PRIZES; i++) {
-			if (msg.sender == winners[i].winner) {
+			if (msg.sender == ownerOf(winners[i].winner)) {
 				if (!winners[i].prizeClaimed) {
 					if (i == 0) {
 						totalPrize += firstPrize;
@@ -244,41 +284,32 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 		}
 	}
 
-	function showWinners() external view {
-		uint tot = 555500000000;
-		uint tot2 = tot * 18001800180018002 / 100000000000000000000;
-		uint tot3 = tot * 18001800180018002 / 10000000000000000000;
-		uint tot4 = tot * 18001800180018002 / 1000000000000000000;
-		uint tot5 = tot * 90009000900090000 / 1000000000000000000;
-
-		console.log(tot5);
-	}
-	
 	/**
-		@dev Opens the Token for Minting to Whitelist. 
-		TODO: Owner can't trigger this function after a certain time.
-		TODO: HmMmm... maybe this shouldn't even be a thing?
+	* @dev Opens minting to public.
 	*/
-	function openToWhitelist() external onlyOwner {
-		isOpenToWhitelist = true;
-		isOpenToPublic = false;
+	function publicMint() external onlyOwner {
+		mintingPhase = 3;
 	}
 
 	/**
-		@dev Opens the Token for Minting to Public.
+	* @dev Opens minting for Ballers and Stacked.
 	*/
-	function openToPublic() external onlyOwner {
-		isOpenToWhitelist = false;
-		isOpenToPublic = true;
+	function whitelistMint() external onlyOwner {
+		mintingPhase = 1;
 	}
 
 	/**
-		@dev Closes the Token for Minting.
-		Closes it both for Whitelist and Public.
+	* @dev Closes minting.
 	*/
-	function closeMinting() external onlyOwner {
-		isOpenToWhitelist = false;
-		isOpenToPublic = false;
+	function closeMint() external onlyOwner {
+		mintingPhase = 0;
+	}
+
+	/**
+	* @dev Opens minting for community, ballers and stacked.
+	*/
+	function communityMint() external onlyOwner {
+		mintingPhase = 2;
 	}
 
 	/**

@@ -99,10 +99,10 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 	uint16 constant NUMBER_THIRD_PRIZE = 50;
 	uint16 constant NUMBER_FOURTH_PRIZE = 500;
 
-	uint16 firstPrize; // TODO: [ASSIGN] [DONE]
-	uint16 secondPrize; // TODO: [ASSIGN] [DONE]
-	uint16 thirdPrize; // TODO: [ASSIGN] [DONE]
-	uint16 fourthPrize; // TODO: [ASSIGN] [DONE]
+	uint16 firstPrize; // [ASSIGN] [DONE]
+	uint16 secondPrize; // [ASSIGN] [DONE]
+	uint16 thirdPrize; // [ASSIGN] [DONE]
+	uint16 fourthPrize; // [ASSIGN] [DONE]
 
 	// The signer address (Whitelist)
 	address private adminSigner;
@@ -213,10 +213,10 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 	/**
 		@dev Selects the winner and places the winners on a table.
 
-		TODO: This function must not be callable twice. [DONE]
-		TODO: This function must select the percentages that each winner gets. [DONE]
+		This function must not be callable twice. [DONE]
+		This function must select the percentages that each winner gets. [DONE]
 
-		TODO:
+		Characteristics:
 			- Only allows for withdrawing after the selected date. [DONE] 
 			- The owner has a 24h grace period after that date where he can select the winner. [DONE]
 			- After the owner's grace period anyone can select the winner. [DONE]
@@ -246,12 +246,12 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 		thirdPrize = uint16 (address(this).balance *  18001800180018002 / 10000000000000000000);
 		fourthPrize = uint16 (address(this).balance * 18001800180018002 / 100000000000000000000);
 
-		// Comission distribution logic: TODO.
+		// Comission distribution: TODO.
 
 		isWinnerSelected = true;
 	}
 
-	// TODO: [MOST IMPORTANT FUNCTION]
+	// [MOST IMPORTANT FUNCTION]
 	function claimPrize() payable external {
 		require(isWinnerSelected); // Require that the winner is already selected.
 
@@ -338,7 +338,7 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 		@dev Function to indicate the base URI of the metadata.
 	 */
 	function _baseURI() internal view virtual override returns (string memory) {
-		return 'ipfs://QmNm96UyEdJgLnhuGczUna37j1PSfv42HVNkM43G2vrMaF/'; // TODO: Replace with true Metadata!!
+		return 'ipfs://QmNm96UyEdJgLnhuGczUna37j1PSfv42HVNkM43G2vrMaF/'; // TODO: Replace with true Metadata!
 	}
 
 	/**

@@ -12,6 +12,15 @@ import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 import "hardhat/console.sol";
 
 /**
+* [IMPORTANT]
+* TODO before delivery:
+*	- verify whitelist working appropriately
+* - comission distribution
+* - function that returns the list of winning NFTs
+* - withdraw function x days after withdraw (probably 7?)
+*/
+
+/**
 	@dev Implementation of Lottery Token, using the [ERC721A] standard for optimized
 	gas costs, specially when batch minting Tokens.
 
@@ -246,10 +255,19 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 		thirdPrize = uint16 (address(this).balance *  18001800180018002 / 10000000000000000000);
 		fourthPrize = uint16 (address(this).balance * 18001800180018002 / 100000000000000000000);
 
-		// Comission distribution: TODO.
+		// Comission distribution:
+		// TODO.	
 
 		isWinnerSelected = true;
 	}
+
+	/**
+	* @dev Distribute the comissions to the members of the team.
+	*/
+	function distributeComissions() payable public onlyOwner {
+		
+	}
+
 
 	// [MOST IMPORTANT FUNCTION]
 	function claimPrize() payable external {

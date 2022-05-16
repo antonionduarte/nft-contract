@@ -1,4 +1,6 @@
-# smart contract development
+# Smart Contracts
+
+Personal development repository for smart contracts.
 
 ```shell
 npx hardhat accounts

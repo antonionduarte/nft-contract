@@ -28,10 +28,10 @@ import "hardhat/console.sol";
 	This token works exclusively in a Whitelist so there is no need to close and open whitelist.
  */
 contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
-	constructor(uint64 subscriptionId) VRFConsumerBaseV2(vrfCoordinator) ERC721A("TokenWhitelist", "TKN") {
+	constructor(uint64 subscriptionId, address _adminSigner) VRFConsumerBaseV2(vrfCoordinator) ERC721A("TokenWhitelist", "TKN") {
 		COORDINATOR = VRFCoordinatorV2Interface(vrfCoordinator);
 		LINKTOKEN = LinkTokenInterface(link);
-		adminSigner = msg.sender;
+		adminSigner = _adminSigner;
 		s_owner = msg.sender;
 		s_subscriptionId = subscriptionId;
 	}
@@ -42,7 +42,10 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 	LinkTokenInterface LINKTOKEN;
 	
 	uint64 s_subscriptionId;
-	address vrfCoordinator = 0x6168499c0cFfCaCD319c818142124B7A15E857ab; // TODO: Currently set for Rinkeby, change for Mainnet.
+
+	address vrfCoordinator = 0x6168499c0cFfCaCD319c818142124B7A15E857ab;
+
+
 	address link = 0x01BE23585060835E02B77ef475b0Cc51aA1e0709;
 	bytes32 keyHash = 0xd89b2bf150e3b9e13446986e571fb9cab24b13cea0a43ea20a6049a85cc807cc;
 	uint32 callbackGasLimit = 100000;
@@ -53,9 +56,10 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 	address s_owner;
 		
 	// Minting related variables
-	uint64 private mintPrice = 1000000000;
-	uint16 private numberOfTokens = 15;
-	uint16 private maxNumberMints = 5; 
+	uint private mintPrice = 1000000000;
+	uint16 private numberOfTokens = 5555;
+
+	string private baseURI; 
 
 	/**
 	 *  
@@ -132,12 +136,25 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 			numWords
 		);
 	}
+
+	function changeVrfCoordinator(address _vrfCoordinator) public onlyOwner {
+		vrfCoordinator = _vrfCoordinator;
+	}
   
 	function fulfillRandomWords(
 		uint256, /* requestId */
 		uint256[] memory randomWords
 	) internal override {
 		s_randomWords = randomWords;
+	}
+
+	function getRandomWords() internal {
+		uint256 randomWords;
+
+	}
+
+	function setMintPrice(uint256 _mintPrice) public onlyOwner {
+		mintPrice = _mintPrice;
 	}
 
 	/* ---------------- */
@@ -194,7 +211,7 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 		if (mintingPhase == 3) quantityCanMint = 3;
 		
 		require(_quantity > 0, "Error: You need to Mint more than one Token.");
-		require(_quantity + totalSupply() < 15, "Error: The quantity you're trying to mint excceeds the total supply");
+		require(_quantity + totalSupply() < numberOfTokens, "Error: The quantity you're trying to mint excceeds the total supply");
 		require(_quantity + _addressData[_to].numberMinted <= quantityCanMint, "Error: You can't mint that quantity of tokens.");
 		require(msg.value >= ((_quantity * mintPrice) * (1 gwei)), "Error: You aren't paying enough.");
 		require(withdrawTime > block.timestamp); // Minting is only possible if the withdraw time is set and is in the future.
@@ -209,14 +226,14 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 	/**
 		* @dev Changes the address of admin signer. 
 	*/
-	function changeAdminSigner(address _adminSigner) external onlyOwner {
+	function changeAdminSigner(address _adminSigner) public onlyOwner {
 		adminSigner = _adminSigner;
 	}
 
 	/**
 	 * @dev Allows changing the maximum number of tokens. 
 	*/
-	function changeNumberTokens(uint16 _numberOfTokens) external onlyOwner ownerCanTrigger {
+	function changeNumberTokens(uint16 _numberOfTokens) public onlyOwner ownerCanTrigger {
 		numberOfTokens = _numberOfTokens;
 	}
 
@@ -265,8 +282,7 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 	/**
 	* @dev Distribute the comissions to the members of the team.
 	*/
-	function distributeComissions() private onlyOwner {
-		require(!isWinnerSelected);
+	function distributeComissions() public onlyOwner {
 		uint balance = address(this).balance;
 
 		uint firstValue = balance * 1530153015 / 10000000000;
@@ -389,6 +405,10 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 		withdrawTime = _date;
 	}
 
+	function setBaseURI(string memory _uri) public onlyOwner {
+		baseURI = _uri;
+	}
+
 	/* ------------------- */
 	/* Auxiliary Functions */
 	/* ------------------- */
@@ -397,7 +417,7 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 		@dev Function to indicate the base URI of the metadata.
 	 */
 	function _baseURI() internal view virtual override returns (string memory) {
-		return 'ipfs://QmNm96UyEdJgLnhuGczUna37j1PSfv42HVNkM43G2vrMaF/'; // TODO: Replace with true Metadata!
+		return baseURI; // TODO: Replace with true metadata
 	}
 
 	/**

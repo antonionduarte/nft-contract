@@ -6,20 +6,6 @@ pragma solidity ^0.8.0;
 // Imports
 import "./ERC721A.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@chainlink/contracts/src/v0.8/interfaces/LinkTokenInterface.sol";
-import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
-import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
-import "hardhat/console.sol";
-
-/**
-* [IMPORTANT]
-* TODO before delivery:
-* - verify whitelist working appropriately
-* - set base URI
-* - comission distribution
-* - function that returns the list of winning NFTs
-* - withdraw function x days after withdraw (probably 7?)
-*/
 
 /**
 	@dev Implementation of Lottery Token, using the [ERC721A] standard for optimized
@@ -27,25 +13,13 @@ import "hardhat/console.sol";
 
 	This token works exclusively in a Whitelist so there is no need to close and open whitelist.
  */
-contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
-	constructor(uint64 subscriptionId, address _adminSigner) VRFConsumerBaseV2(vrfCoordinator) ERC721A("TokenWhitelist", "TKN") {
-		COORDINATOR = VRFCoordinatorV2Interface(vrfCoordinator);
-		LINKTOKEN = LinkTokenInterface(link);
+contract LotteryToken is ERC721A, Ownable {
+	constructor(address _adminSigner) ERC721A("TokenWhitelist", "TKN") {
 		adminSigner = _adminSigner;
-		s_owner = msg.sender;
-		s_subscriptionId = subscriptionId;
 	}
 
 	// Chainlink related configs.
-	// TODO: Change them to work for the Mainnet.
-	VRFCoordinatorV2Interface COORDINATOR;
-	LinkTokenInterface LINKTOKEN;
-	
-	uint64 s_subscriptionId;
-
 	address vrfCoordinator = 0x6168499c0cFfCaCD319c818142124B7A15E857ab;
-
-
 	address link = 0x01BE23585060835E02B77ef475b0Cc51aA1e0709;
 	bytes32 keyHash = 0xd89b2bf150e3b9e13446986e571fb9cab24b13cea0a43ea20a6049a85cc807cc;
 	uint32 callbackGasLimit = 100000;
@@ -121,42 +95,6 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 	// The signer address (Whitelist)
 	address private adminSigner;
 
-	/* ------------------- */
-	/* Chainlink Functions */
-	/* ------------------- */
-
-	// Assumes the subscription is funded sufficiently.
-	function requestRandomWords() external onlyOwner {
-	// Will revert if subscription is not set and funded.
-		s_requestId = COORDINATOR.requestRandomWords(
-			keyHash,
-			s_subscriptionId,
-			requestConfirmations,
-			callbackGasLimit,
-			numWords
-		);
-	}
-
-	function changeVrfCoordinator(address _vrfCoordinator) public onlyOwner {
-		vrfCoordinator = _vrfCoordinator;
-	}
-  
-	function fulfillRandomWords(
-		uint256, /* requestId */
-		uint256[] memory randomWords
-	) internal override {
-		s_randomWords = randomWords;
-	}
-
-	function getRandomWords() internal {
-		uint256 randomWords;
-
-	}
-
-	function setMintPrice(uint256 _mintPrice) public onlyOwner {
-		mintPrice = _mintPrice;
-	}
-
 	/* ---------------- */
 	/* Public Functions */
 	/* ---------------- */
@@ -168,7 +106,7 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 		address _to,
 		uint _quantity,
 		Coupon calldata _coupon
-	) external payable {
+	) public payable {
 		uint quantityCanMint = 0;
 
 		if (!(mintingPhase == 3)) {
@@ -200,13 +138,13 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 			require(couponVerified, "Error: You have no key, wait for the public mint"); 
 
 			if (mintingPhase == 1) {
-				require(personalCoupon == CouponType.Ballers || personalCoupon == CouponType.Stacked);
+				require(personalCoupon == CouponType.Ballers || personalCoupon == CouponType.Stacked, "Error: Invalid token");
 			} 
 			else if (mintingPhase == 2) {
-				require(personalCoupon == CouponType.Ballers || personalCoupon == CouponType.Stacked || personalCoupon == CouponType.Community);
+				require(personalCoupon == CouponType.Ballers || personalCoupon == CouponType.Stacked || personalCoupon == CouponType.Community, "Error: Invalid token");
 			}
 		
-		} else require (mintingPhase == 3);
+		} else require (mintingPhase == 3, "Error: Invalid token");
 
 		if (mintingPhase == 3) quantityCanMint = 3;
 		
@@ -219,37 +157,6 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 		_mint(_to, _quantity, "", false);
 	}
 
-	/* ------------------------ */
-	/* Administrative Functions */
-	/* ------------------------ */
-
-	/**
-		* @dev Changes the address of admin signer. 
-	*/
-	function changeAdminSigner(address _adminSigner) public onlyOwner {
-		adminSigner = _adminSigner;
-	}
-
-	/**
-	 * @dev Allows changing the maximum number of tokens. 
-	*/
-	function changeNumberTokens(uint16 _numberOfTokens) public onlyOwner ownerCanTrigger {
-		numberOfTokens = _numberOfTokens;
-	}
-
-	/**
-		@dev Selects the winner and places the winners on a table.
-
-		This function must not be callable twice. [DONE]
-		This function must select the percentages that each winner gets. [DONE]
-
-		Characteristics:
-			- Only allows for withdrawing after the selected date. [DONE] 
-			- The owner has a 24h grace period after that date where he can select the winner. [DONE]
-			- After the owner's grace period anyone can select the winner. [DONE]
-			- The winners are selected in this function. [DONE]
-			- The function uses Chainlink VRF for reliable randomness instead of pseudo-reliable randomness.
-	*/
 	function selectWinnerWithdraw() public payable ownerCanTrigger {
 		require(!isWinnerSelected); // If winner is selected can't re-run it
 		
@@ -258,7 +165,7 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 			require(msg.sender == owner());
 		}
 
-		uint random = block.timestamp; // TODO: This is just pseudo-randomness
+		uint random = super.chainlinkFullFillRandom();
 
 		// Expand one random value into x random values by encoding and hashing
 		for (uint i = 0; i < NUMBER_PRIZES; i++) {
@@ -319,7 +226,7 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 	* x days after the winner is selected.
 	*/
 	function withdrawFunds() payable public onlyOwner {
-		require(block.timestamp > withdrawTime + 7 days); // TODO: 7 days?
+		require(block.timestamp > withdrawTime + 7 days);
 		(bool success, ) = payable(owner()).call{ value: address(this).balance }("");
 		require(success);
 	}
@@ -359,40 +266,10 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 	}
 
 	/**
-	* @dev Opens minting to public.
+	* @dev Selects minting phase
 	*/
-	function publicMint() external onlyOwner {
-		mintingPhase = 3;
-	}
-
-	/**
-	* @dev Opens minting for Ballers and Stacked.
-	*/
-	function whitelistMint() external onlyOwner {
-		mintingPhase = 1;
-	}
-
-	/**
-	* @dev Closes minting.
-	*/
-	function closeMint() external onlyOwner {
-		mintingPhase = 0;
-	}
-
-	/**
-	* @dev Opens minting for community, ballers and stacked.
-	*/
-	function communityMint() external onlyOwner {
-		mintingPhase = 2;
-	}
-
-	/**
-		@dev Changes the Minting price to the one specified.
-		@param _mintPrice The new price for minting the token.
-		TODO: Remove and make the mint price a value already set
-	*/
-	function changeMintPrice(uint _mintPrice) external onlyOwner ownerCanTrigger {
-		mintPrice = uint64 (_mintPrice);
+	function selectMintingPhase(uint16 phase) external onlyOwner {
+		mintingPhase = phase;
 	}
 
 	/**

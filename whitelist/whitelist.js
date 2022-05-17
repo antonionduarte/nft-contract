@@ -4,8 +4,10 @@ const { privateToAddress, bufferToHex, keccak256, toBuffer, ecsign } = require("
 const crypto = require('crypto')
 
 const CouponTypeEnum = {
-  Presale: 0,
-};
+	Ballers: 0,
+	Stacked: 1,
+	Community: 2,
+  };
 
 /**
  * The main function for creating a whitelist key.
@@ -14,7 +16,7 @@ const CouponTypeEnum = {
  * @returns The key to add to the whitelist.
  */
 function addToWhitelist(addrStr, pvtKeyString) {
-	var coupon = generateCoupon(addrStr, pvtKeyString)
+	var coupon = generateStacked(addrStr, pvtKeyString)
 	var serializedCoupon = serializeCoupon(coupon)
 	var key = generateKey(serializedCoupon)
 	return key;
@@ -39,13 +41,41 @@ function generateSigner() {
 /**
  * The function to generate coupons.
  */
-function generateCoupon(address, signerPvtKeyString) {
+function generateBallers(address, signerPvtKeyString) {
 	const signerPvtKey = Buffer.from(signerPvtKeyString, "hex");
 
 	const userAddress = ethers.utils.getAddress(address);
 	const hashBuffer = generateHashBuffer(
 		["uint256", "address"],
-    [CouponTypeEnum["Presale"], userAddress]
+    	[CouponTypeEnum["Ballers"], userAddress]
+	)
+
+	const coupon = createCoupon(hashBuffer, signerPvtKey);
+
+	return coupon;
+}
+
+function generateStacked(address, signerPvtKeyString) {
+	const signerPvtKey = Buffer.from(signerPvtKeyString, "hex");
+
+	const userAddress = ethers.utils.getAddress(address);
+	const hashBuffer = generateHashBuffer(
+		["uint256", "address"],
+    	[CouponTypeEnum["Stacked"], userAddress]
+	)
+
+	const coupon = createCoupon(hashBuffer, signerPvtKey);
+
+	return coupon;
+}
+
+function generateCommunity(address, signerPvtKeyString) {
+	const signerPvtKey = Buffer.from(signerPvtKeyString, "hex");
+
+	const userAddress = ethers.utils.getAddress(address);
+	const hashBuffer = generateHashBuffer(
+		["uint256", "address"],
+    	[CouponTypeEnum["Community"], userAddress]
 	)
 
 	const coupon = createCoupon(hashBuffer, signerPvtKey);

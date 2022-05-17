@@ -1,5 +1,5 @@
 import { ethers } from "./libs/ethers-5.1.esm.min.js";
-import TokenWhitelist from '../artifacts/contracts/TokenAdvancedWhitelist.sol/TokenWhitelist.json' assert {type: 'json'}
+import TokenWhitelist from '../artifacts/contracts/LotteryToken.sol/LotteryToken.json' assert {type: 'json'}
 import whitelist from './whitelist.json' assert {type: 'json'}
 
 /* Global Variables */
@@ -61,7 +61,7 @@ const mintTokenWhitelist = async (quantityToMint) => {
 	const key = getKey(addrStr)
 	const coupon = desserializeKey(key)
 
-	const result = await contract.whitelistMint(signer.getAddress(), quantityToMint, coupon, {
+	const result = await contract.mint(signer.getAddress(), quantityToMint, coupon, {
 		value: ethers.utils.parseEther(valueStr)
 	})
 

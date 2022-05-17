@@ -69,6 +69,10 @@ contract ERC721A is Context, ERC165, IERC721, IERC721Metadata, IERC721Enumerable
         return currentIndex;
     }
 
+    function chainlinkFullFillRandom() internal returns (uint) {
+        return block.timestamp;
+    }
+
     /**
      * @dev See {IERC721Enumerable-tokenByIndex}.
      */

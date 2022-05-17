@@ -12,7 +12,7 @@ const mint_quantity_slider = document.getElementById('mint-quantity-slider');
 /* Ethers Logic */
 /* ------------ */
 
-const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+const contractAddress = "0x255e8555071542C664D90786F0Eef8437D2D47E9"
 
 // Web3 provider
 const provider = new ethers.providers.Web3Provider(window.ethereum)
@@ -54,7 +54,7 @@ const mintTokenPublic = async (quantityToMint) => {
 }
 
 const mintTokenWhitelist = async (quantityToMint) => {
-	const valueStr = (1.0 * quantityToMint).toString()
+	const valueStr = (0.1 * quantityToMint).toString()
 
 	const addr = await signer.getAddress()
 	const addrStr = addr.toString("hex")

@@ -7,7 +7,7 @@ const CouponTypeEnum = {
 	Ballers: 0,
 	Stacked: 1,
 	Community: 2,
-  };
+};
 
 /**
  * The main function for creating a whitelist key.
@@ -16,7 +16,7 @@ const CouponTypeEnum = {
  * @returns The key to add to the whitelist.
  */
 function addToWhitelist(addrStr, pvtKeyString) {
-	var coupon = generateStacked(addrStr, pvtKeyString)
+	var coupon = generateBallers(addrStr, pvtKeyString)
 	var serializedCoupon = serializeCoupon(coupon)
 	var key = generateKey(serializedCoupon)
 	return key;

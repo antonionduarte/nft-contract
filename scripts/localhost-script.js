@@ -23,11 +23,50 @@ async function main() {
 
   await token.deployed();
 
-	await token.selectMintingPhase(0);
+	await token.selectMintingPhase(3);
 
   console.log("Token deployed to:", token.address);
 
+	const [owner, addr1, addr2, addr3] = await ethers.getSigners();
+	const addr1s = await addr1.address
+	console.log("addr1: " + addr1s)
+
+	for (i = 0; i < 50; i++) {
+		await token.connect(addr1).mint(addr1.address, 50, desserializeKey("be69cfbe41be2d2bbfd991a46a72a679fa29432974e97b4ff3f7512982a9313e-31364784a61270c29c4794f2ef84161e177739c4afce951cba3ab78ddfbba15e-27"), { value: ethers.utils.parseEther("5") })
+	}
+
+	console.log("test")
+
+	for (i = 0; i < 50; i++) {
+		await token.connect(addr2).mint(addr2.address, 50, desserializeKey("be69cfbe41be2d2bbfd991a46a72a679fa29432974e97b4ff3f7512982a9313e-31364784a61270c29c4794f2ef84161e177739c4afce951cba3ab78ddfbba15e-27"), { value: ethers.utils.parseEther("5") })
+	}
+
+	console.log("test")
+
+	for (i = 0; i < 2; i++) {
+		await token.connect(addr3).mint(addr3.address, 50, desserializeKey("be69cfbe41be2d2bbfd991a46a72a679fa29432974e97b4ff3f7512982a9313e-31364784a61270c29c4794f2ef84161e177739c4afce951cba3ab78ddfbba15e-27"), { value: ethers.utils.parseEther("5") })
+	}
+
+	console.log("test")
+
+	var bal = await token.balanceOf(addr1.address)
+	console.log("test " + bal)
+
+	await token.connect(owner).selectWinnerWithdraw();
+	var lol = await (await (token.connect(owner).getWinners()));
+	console.log(lol);
+	await token.connect(addr1).claimPrize();
   //await token.showWinners();
+}
+
+function desserializeKey(key) {
+	let divided_key = key.split("-");
+	
+	return {
+		r: "0x" + divided_key[0],
+		s: "0x" + divided_key[1],
+		v: parseInt(divided_key[2])
+	}
 }
 
 // We recommend this pattern to be able to use async/await everywhere

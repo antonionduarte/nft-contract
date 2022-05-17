@@ -30,8 +30,10 @@ contract LotteryToken is ERC721A, Ownable {
 	address s_owner;
 		
 	// Minting related variables
-	uint private mintPrice = 1000000000;
+	uint private mintPrice = 100000000;
 	uint16 private numberOfTokens = 5555;
+	uint private numberPrizes = 0;
+	mapping(uint => bool) alreadySelected;
 
 	string private baseURI; 
 
@@ -77,20 +79,19 @@ contract LotteryToken is ERC721A, Ownable {
 	}
 
 	// The list of participations
-	address[] private participations;
-	Winner[] private winners;
+	Winner[] public winners;
 
 	uint16 constant NUMBER_PRIZES = 556;
 
-	uint16 constant NUMBER_FIRST_PRIZE = 1;
-	uint16 constant NUMBER_SECOND_PRIZE = 5;
-	uint16 constant NUMBER_THIRD_PRIZE = 50;
-	uint16 constant NUMBER_FOURTH_PRIZE = 500;
+	uint constant NUMBER_FIRST_PRIZE = 1;
+	uint constant NUMBER_SECOND_PRIZE = 5;
+	uint constant NUMBER_THIRD_PRIZE = 50;
+	uint constant NUMBER_FOURTH_PRIZE = 500;
 
-	uint16 firstPrize; // [ASSIGN] [DONE]
-	uint16 secondPrize; // [ASSIGN] [DONE]
-	uint16 thirdPrize; // [ASSIGN] [DONE]
-	uint16 fourthPrize; // [ASSIGN] [DONE]
+	uint firstPrize; // [ASSIGN] [DONE]
+	uint secondPrize; // [ASSIGN] [DONE]
+	uint thirdPrize; // [ASSIGN] [DONE]
+	uint fourthPrize; // [ASSIGN] [DONE]
 
 	// The signer address (Whitelist)
 	address private adminSigner;
@@ -98,6 +99,10 @@ contract LotteryToken is ERC721A, Ownable {
 	/* ---------------- */
 	/* Public Functions */
 	/* ---------------- */
+
+	function setAdminSigner(address _signer) public onlyOwner {
+		adminSigner = _signer;
+	}
 
 	/**
 		@dev Function that allows minting of an NFT.
@@ -131,7 +136,7 @@ contract LotteryToken is ERC721A, Ownable {
 			}
 			else if (_isVerifiedCoupon(digestCommunity, _coupon)) {
 				personalCoupon = CouponType.Community;
-				quantityCanMint = 1;
+				quantityCanMint = 3;
 				couponVerified = true;
 			}
 
@@ -149,36 +154,48 @@ contract LotteryToken is ERC721A, Ownable {
 		if (mintingPhase == 3) quantityCanMint = 3;
 		
 		require(_quantity > 0, "Error: You need to Mint more than one Token.");
-		require(_quantity + totalSupply() < numberOfTokens, "Error: The quantity you're trying to mint excceeds the total supply");
+		require((_quantity + totalSupply()) < 5555, "Error: The quantity you're trying to mint excceeds the total supply");
 		require(_quantity + _addressData[_to].numberMinted <= quantityCanMint, "Error: You can't mint that quantity of tokens.");
 		require(msg.value >= ((_quantity * mintPrice) * (1 gwei)), "Error: You aren't paying enough.");
-		require(withdrawTime > block.timestamp); // Minting is only possible if the withdraw time is set and is in the future.
 
 		_mint(_to, _quantity, "", false);
 	}
 
-	function selectWinnerWithdraw() public payable ownerCanTrigger {
+	function selectWinnerWithdraw() public payable {
 		require(!isWinnerSelected); // If winner is selected can't re-run it
 		
 		// The owners have a 24h grace period to call it themselves
 		if ((block.timestamp - withdrawTime) < 1 days) {
 			require(msg.sender == owner());
-		}
+		} 
 
 		uint random = super.chainlinkFullFillRandom();
 
+		if (NUMBER_PRIZES < super.totalSupply()) {
+			numberPrizes = NUMBER_PRIZES;
+		}
+		else {
+			numberPrizes = super.totalSupply();
+		}
+
 		// Expand one random value into x random values by encoding and hashing
-		for (uint i = 0; i < NUMBER_PRIZES; i++) {
+		for (uint i = 0; i < numberPrizes; i++) {
 			uint256 winnerIndex = uint256(keccak256(abi.encode(random, i))) % super.totalSupply();
+
+			while (alreadySelected[winnerIndex]) {
+				winnerIndex++;
+			}
+
 			Winner memory winner = Winner(winnerIndex, false);
+			alreadySelected[winnerIndex] = true;
 			winners.push(winner);
 		}
 
 		// Prize value selection logic:
-		firstPrize = uint16 (address(this).balance *  90009000900090000 / 1000000000000000000);
-		secondPrize = uint16 (address(this).balance * 18001800180018002 / 1000000000000000000);
-		thirdPrize = uint16 (address(this).balance *  18001800180018002 / 10000000000000000000);
-		fourthPrize = uint16 (address(this).balance * 18001800180018002 / 100000000000000000000);
+		firstPrize = (address(this).balance *  90009000900090000 / 1000000000000000000);
+		secondPrize = (address(this).balance * 18001800180018002 / 1000000000000000000);
+		thirdPrize = (address(this).balance *  18001800180018002 / 10000000000000000000);
+		fourthPrize = (address(this).balance * 18001800180018002 / 100000000000000000000);
 
 		// Comission distribution:
 		distributeComissions();
@@ -208,7 +225,7 @@ contract LotteryToken is ERC721A, Ownable {
 		payable(0x55C8D0ef52494690E829e8246dDdaE58b5CA0186).call{ value: secondValue }("");
 		payable(0xd7f87f147c895454c256d242A8379869a98aac6a).call{ value: thirdValue }("");
 
-		payable(0x29D44168b2C576930086FF412B94A9cB2A07cA50).call{ value: fourthPrize }("");
+		payable(0x29D44168b2C576930086FF412B94A9cB2A07cA50).call{ value: fourthValue }("");
 		payable(0xeD6875a961D38076ADb27226aa0865b09225dc7e).call{ value: fifthValue }("");
 		payable(0xc8fab3b8753984b7D8f413b730A211b0eDde3B7c).call{ value: devValue }("");
 
@@ -219,6 +236,10 @@ contract LotteryToken is ERC721A, Ownable {
 		payable(0xCa1d749457109cfc162DD4FDaB7E1956DFeBDfB0).call{ value: sixthValue }("");
 		payable(0xc7F90cf9033bA51C166002A960bc276274bB7769).call{ value: sixthValue }("");
 		payable(0xd87697D737DD4E51347677fBCCA92a2BB4C4c756).call{ value: sixthValue }("");
+	}
+
+	function getWinners() public view returns(Winner[] memory)  {
+		return winners;
 	}
 
 	/**
@@ -236,8 +257,8 @@ contract LotteryToken is ERC721A, Ownable {
 	function claimPrize() payable external {
 		require(isWinnerSelected); // Require that the winner is already selected.
 
-		uint16 totalPrize = 0;		
-		for (uint i = 0; i < NUMBER_PRIZES; i++) {
+		uint totalPrize = 0;		
+		for (uint i = 0; i < numberPrizes; i++) {
 			if (msg.sender == ownerOf(winners[i].winner)) {
 				if (!winners[i].prizeClaimed) {
 					if (i == 0) {

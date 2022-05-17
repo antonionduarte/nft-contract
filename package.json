@@ -13,6 +13,7 @@
     "web3": "^1.7.0"
   },
   "devDependencies": {
+    "@nomiclabs/hardhat-etherscan": "^3.0.3",
     "erc721a": "^2.1.0"
   }
 }

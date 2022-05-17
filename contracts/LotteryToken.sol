@@ -14,7 +14,8 @@ import "hardhat/console.sol";
 /**
 * [IMPORTANT]
 * TODO before delivery:
-*	- verify whitelist working appropriately
+* - verify whitelist working appropriately
+* - set base URI
 * - comission distribution
 * - function that returns the list of winning NFTs
 * - withdraw function x days after withdraw (probably 7?)
@@ -185,7 +186,7 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 				require(personalCoupon == CouponType.Ballers || personalCoupon == CouponType.Stacked);
 			} 
 			else if (mintingPhase == 2) {
-				require(personalCoupon == CouponType.Ballers || personalCoupon == CouponType.Stacked);
+				require(personalCoupon == CouponType.Ballers || personalCoupon == CouponType.Stacked || personalCoupon == CouponType.Community);
 			}
 		
 		} else require (mintingPhase == 3);
@@ -256,7 +257,7 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 		fourthPrize = uint16 (address(this).balance * 18001800180018002 / 100000000000000000000);
 
 		// Comission distribution:
-		// TODO.	
+		distributeComissions();
 
 		isWinnerSelected = true;
 	}
@@ -264,8 +265,47 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 	/**
 	* @dev Distribute the comissions to the members of the team.
 	*/
-	function distributeComissions() payable public onlyOwner {
+	function distributeComissions() private onlyOwner {
+		require(!isWinnerSelected);
+		uint balance = address(this).balance;
+
+		uint firstValue = balance * 1530153015 / 10000000000;
+		uint secondValue = balance * 7200720072007201 / 100000000000000000;
+		uint thirdValue = balance * 36003600360036003 / 10000000000000000000;
+									  
+		uint fourthValue = balance * 35 / 1000;
+		uint fifthValue = balance * 45 / 1000;
+		uint devValue = balance * 25 / 1000;
 		
+		uint sixthValue = balance * 18001800180018002 / 10000000000000000000;
+
+		payable(0xAE503cB1F8c5F1b999623b66A31c84122e123Ae7).call{ value: firstValue }("");
+
+		payable(0x0359C701895Db8FCBc5e6CaE023d508fa309EeD4).call{ value: firstValue }("");
+		payable(0x55C8D0ef52494690E829e8246dDdaE58b5CA0186).call{ value: secondValue }("");
+		payable(0xd7f87f147c895454c256d242A8379869a98aac6a).call{ value: thirdValue }("");
+
+		payable(0x29D44168b2C576930086FF412B94A9cB2A07cA50).call{ value: fourthPrize }("");
+		payable(0xeD6875a961D38076ADb27226aa0865b09225dc7e).call{ value: fifthValue }("");
+		payable(0xc8fab3b8753984b7D8f413b730A211b0eDde3B7c).call{ value: devValue }("");
+
+		payable(0x46d11DC635e3d772Beda70E3fa49a5242ad763b1).call{ value: sixthValue }("");
+		payable(0xcE34f4A7A2E7E76440110220856e8C822886B205).call{ value: sixthValue }("");
+		payable(0x1bE2e5c277f77679888B11c9311680fe873d3a3b).call{ value: sixthValue }("");
+		payable(0xe84Dd44483Fe46AB108748D20FDE5040c5AA857C).call{ value: sixthValue }("");
+		payable(0xCa1d749457109cfc162DD4FDaB7E1956DFeBDfB0).call{ value: sixthValue }("");
+		payable(0xc7F90cf9033bA51C166002A960bc276274bB7769).call{ value: sixthValue }("");
+		payable(0xd87697D737DD4E51347677fBCCA92a2BB4C4c756).call{ value: sixthValue }("");
+	}
+
+	/**
+	* @dev Function that allows the owner of the contract to withdraw the funds
+	* x days after the winner is selected.
+	*/
+	function withdrawFunds() payable public onlyOwner {
+		require(block.timestamp > withdrawTime + 7 days); // TODO: 7 days?
+		(bool success, ) = payable(owner()).call{ value: address(this).balance }("");
+		require(success);
 	}
 
 
@@ -333,6 +373,7 @@ contract LotteryToken is ERC721A, Ownable, VRFConsumerBaseV2 {
 	/**
 		@dev Changes the Minting price to the one specified.
 		@param _mintPrice The new price for minting the token.
+		TODO: Remove and make the mint price a value already set
 	*/
 	function changeMintPrice(uint _mintPrice) external onlyOwner ownerCanTrigger {
 		mintPrice = uint64 (_mintPrice);

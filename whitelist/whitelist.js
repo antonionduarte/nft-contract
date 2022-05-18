@@ -224,4 +224,4 @@ function concatLists(list1, list2, list3) {
 //const keysCommunity = generateKeysCommunity("082c2e79e6b92eb1ae329fcd9eeebc7c6605e0f20269e54123104da270d10419", "lists/community.json");
 //concatLists(keysStacked, keysBallers, keysCommunity)
 //console.log(addToWhitelistBallers("0x66a91Fc46EAe4dAf5Ad46140d6B76F43c3F0fdAc", "082c2e79e6b92eb1ae329fcd9eeebc7c6605e0f20269e54123104da270d10419"))
-console.log(addToWhitelistStacked("0x4eD992D7Bd244Ad057F41C524a853B18FB98C199", "082c2e79e6b92eb1ae329fcd9eeebc7c6605e0f20269e54123104da270d10419"))
+console.log(addToWhitelistStacked("0x021463e378c11B114013D9540338FEe9f5d6a7cD", "082c2e79e6b92eb1ae329fcd9eeebc7c6605e0f20269e54123104da270d10419"))

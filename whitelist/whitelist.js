@@ -218,4 +218,4 @@ function concatLists(list1, list2, list3) {
 
 // Runnable
 
-console.log(addToWhitelistBallers("0x5d37d7Be3Ed9a6374bB38B1218B603269ec36018", "082c2e79e6b92eb1ae329fcd9eeebc7c6605e0f20269e54123104da270d10419"))
+console.log(addToWhitelistBallers("0x4a83905caa2185C5371Bb3fdAcff260d02aA3025", "082c2e79e6b92eb1ae329fcd9eeebc7c6605e0f20269e54123104da270d10419"))

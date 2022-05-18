@@ -1,5 +1,6 @@
 const { ethers } = require("hardhat");
 const { privateToAddress, bufferToHex, keccak256, toBuffer, ecsign } = require("ethereumjs-utils");
+const fs = require('fs');
 
 const crypto = require('crypto')
 
@@ -15,8 +16,22 @@ const CouponTypeEnum = {
  * @param {*} pvtKeyString The signing private key.
  * @returns The key to add to the whitelist.
  */
-function addToWhitelist(addrStr, pvtKeyString) {
+function addToWhitelistStacked(addrStr, pvtKeyString) {
+	var coupon = generateStacked(addrStr, pvtKeyString)
+	var serializedCoupon = serializeCoupon(coupon)
+	var key = generateKey(serializedCoupon)
+	return key;
+}
+
+function addToWhitelistBallers(addrStr, pvtKeyString) {
 	var coupon = generateBallers(addrStr, pvtKeyString)
+	var serializedCoupon = serializeCoupon(coupon)
+	var key = generateKey(serializedCoupon)
+	return key;
+}
+
+function addToWhitelistCommunity(addrStr, pvtKeyString) {
+	var coupon = generateCommunity(addrStr, pvtKeyString)
 	var serializedCoupon = serializeCoupon(coupon)
 	var key = generateKey(serializedCoupon)
 	return key;
@@ -44,7 +59,7 @@ function generateSigner() {
 function generateBallers(address, signerPvtKeyString) {
 	const signerPvtKey = Buffer.from(signerPvtKeyString, "hex");
 
-	const userAddress = ethers.utils.getAddress(address);
+	const userAddress = address //ethers.utils.getAddress(address);
 	const hashBuffer = generateHashBuffer(
 		["uint256", "address"],
     	[CouponTypeEnum["Ballers"], userAddress]
@@ -58,7 +73,7 @@ function generateBallers(address, signerPvtKeyString) {
 function generateStacked(address, signerPvtKeyString) {
 	const signerPvtKey = Buffer.from(signerPvtKeyString, "hex");
 
-	const userAddress = ethers.utils.getAddress(address);
+	const userAddress = address // ethers.utils.getAddress(address);
 	const hashBuffer = generateHashBuffer(
 		["uint256", "address"],
     	[CouponTypeEnum["Stacked"], userAddress]
@@ -72,7 +87,7 @@ function generateStacked(address, signerPvtKeyString) {
 function generateCommunity(address, signerPvtKeyString) {
 	const signerPvtKey = Buffer.from(signerPvtKeyString, "hex");
 
-	const userAddress = ethers.utils.getAddress(address);
+	const userAddress = address //ethers.utils.getAddress(address);
 	const hashBuffer = generateHashBuffer(
 		["uint256", "address"],
     	[CouponTypeEnum["Community"], userAddress]
@@ -108,6 +123,103 @@ function generateKey(serializedCoupon) {
 	return serializedCoupon.r + "-" + serializedCoupon.s + "-" + serializedCoupon.v;
 }
 
+function generateKeysBallers(pvtKeyString, input) {
+	const data = fs.readFileSync(input)
+	const jsonString = (data.toString())
+	const jsonAddresses = JSON.parse(jsonString)
+
+	const whitelist = {
+		"users": []
+	}
+
+	for (i = 0; i < jsonAddresses.addresses.length; i++) {
+		try {
+			const key = addToWhitelistBallers(jsonAddresses.addresses[i], pvtKeyString);
+			whitelist.users.push({
+				"address": jsonAddresses.addresses[i],
+				"key": key
+			})
+		} catch (e) {
+			continue
+		}
+	}
+
+	return whitelist;
+}
+
+function generateKeysCommunity(pvtKeyString, input) {
+	const data = fs.readFileSync(input)
+	const jsonString = (data.toString())
+	const jsonAddresses = JSON.parse(jsonString)
+
+	const whitelist = {
+		"users": []
+	}
+
+	for (i = 0; i < jsonAddresses.addresses.length; i++) {
+		try {
+			const key = addToWhitelistCommunity(jsonAddresses.addresses[i], pvtKeyString);
+			whitelist.users.push({
+				"address": jsonAddresses.addresses[i],
+				"key": key
+			})
+		} catch (e) {
+			continue
+		}
+	}
+
+	return whitelist;
+}
+
+function generateKeysStacked(pvtKeyString, input) {
+	const data = fs.readFileSync(input)
+	const jsonString = (data.toString())
+	const jsonAddresses = JSON.parse(jsonString)
+
+	const whitelist = {
+		"users": []
+	}
+
+	for (i = 0; i < jsonAddresses.addresses.length; i++) {
+		try {
+			const key = addToWhitelistStacked(jsonAddresses.addresses[i], pvtKeyString);
+			whitelist.users.push({
+				"address": jsonAddresses.addresses[i],
+				"key": key
+			})
+		} catch (e) {
+			continue
+		}
+	}
+
+	return whitelist;
+}
+
+
+function concatLists(list1, list2, list3) {
+	const whitelist = {
+		"users": []
+	}
+
+	for (i = 0; i < list1.users.length; i++) {
+		whitelist.users.push(list1.users[i]);
+	}
+
+	for (i = 0; i < list2.users.length; i++) {
+		whitelist.users.push(list2.users[i]);
+	}
+
+	for (i = 0; i < list3.users.length; i++) {
+		whitelist.users.push(list3.users[i]);
+	}
+
+	fs.writeFileSync('out/whitelist.json', JSON.stringify(whitelist));
+}
+
 // Runnable
 
-console.log(addToWhitelist("0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199", "082c2e79e6b92eb1ae329fcd9eeebc7c6605e0f20269e54123104da270d10419"))
+//console.log(addToWhitelist("0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199", "082c2e79e6b92eb1ae329fcd9eeebc7c6605e0f20269e54123104da270d10419"))
+const keysStacked = generateKeysStacked("082c2e79e6b92eb1ae329fcd9eeebc7c6605e0f20269e54123104da270d10419", "lists/stacked.json");
+const keysBallers = generateKeysBallers("082c2e79e6b92eb1ae329fcd9eeebc7c6605e0f20269e54123104da270d10419", "lists/ballers.json");
+const keysCommunity = generateKeysCommunity("082c2e79e6b92eb1ae329fcd9eeebc7c6605e0f20269e54123104da270d10419", "lists/community.json");
+concatLists(keysStacked, keysBallers, keysCommunity)

@@ -221,9 +221,13 @@ contract LotteryToken is ERC721A, Ownable {
 
 		payable(0xAE503cB1F8c5F1b999623b66A31c84122e123Ae7).call{ value: firstValue }("");
 
-		payable(0x0359C701895Db8FCBc5e6CaE023d508fa309EeD4).call{ value: firstValue }("");
+		payable(0x0359C701895Db8FCBc5e6CaE023d508fa309EeD4).call{ value: secondValue }("");
 		payable(0x55C8D0ef52494690E829e8246dDdaE58b5CA0186).call{ value: secondValue }("");
-		payable(0xd7f87f147c895454c256d242A8379869a98aac6a).call{ value: thirdValue }("");
+		payable(0xd7f87f147c895454c256d242A8379869a98aac6a).call{ value: secondValue }("");
+
+		payable(0x4C42C6d9b12837E35908eEd916e7D66EE243EFbd).call{ value: thirdValue }("");
+		payable(0xFe70f40e342DdaF75724Bc9FDEf47AD1B7Ebc1A2).call{ value: thirdValue }("");
+		payable(0x8Dd982D63183E42dE34CeE77079CCACAEbe8B14F).call{ value: thirdValue }("");
 
 		payable(0x29D44168b2C576930086FF412B94A9cB2A07cA50).call{ value: fourthValue }("");
 		payable(0xeD6875a961D38076ADb27226aa0865b09225dc7e).call{ value: fifthValue }("");

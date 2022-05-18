@@ -103,7 +103,7 @@ async function eventListeners() {
 	document.getElementById("token-balance-button").addEventListener('click', setTokenBalance);
 	document.getElementById("mint-quantity-slider").oninput = () => {
 		quantityToMint = mint_quantity_slider.value
-		document.getElementById("quantity-to-mint").innerHTML = quantityToMint
+		document.getElementsByClassName("select-amount").innerHTML = quantityToMint
 	}
 }
 

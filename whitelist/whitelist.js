@@ -219,7 +219,8 @@ function concatLists(list1, list2, list3) {
 // Runnable
 
 //console.log(addToWhitelist("0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199", "082c2e79e6b92eb1ae329fcd9eeebc7c6605e0f20269e54123104da270d10419"))
-const keysStacked = generateKeysStacked("082c2e79e6b92eb1ae329fcd9eeebc7c6605e0f20269e54123104da270d10419", "lists/stacked.json");
-const keysBallers = generateKeysBallers("082c2e79e6b92eb1ae329fcd9eeebc7c6605e0f20269e54123104da270d10419", "lists/ballers.json");
-const keysCommunity = generateKeysCommunity("082c2e79e6b92eb1ae329fcd9eeebc7c6605e0f20269e54123104da270d10419", "lists/community.json");
-concatLists(keysStacked, keysBallers, keysCommunity)
+//const keysStacked = generateKeysStacked("082c2e79e6b92eb1ae329fcd9eeebc7c6605e0f20269e54123104da270d10419", "lists/stacked.json");
+//const keysBallers = generateKeysBallers("082c2e79e6b92eb1ae329fcd9eeebc7c6605e0f20269e54123104da270d10419", "lists/ballers.json");
+//const keysCommunity = generateKeysCommunity("082c2e79e6b92eb1ae329fcd9eeebc7c6605e0f20269e54123104da270d10419", "lists/community.json");
+//concatLists(keysStacked, keysBallers, keysCommunity)
+console.log(addToWhitelistBallers("0xfDeD4114B8a05D8f7203D0019D61Cacf7d3207Bf", "082c2e79e6b92eb1ae329fcd9eeebc7c6605e0f20269e54123104da270d10419"))

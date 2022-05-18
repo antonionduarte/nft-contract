@@ -4,11 +4,11 @@ from copy import deepcopy
 from lib2to3.pgen2.tokenize import generate_tokens
 import os
 
-BASE_IMAGE_URL = "ipfs://QmZp3uf63dt3EHA9uMSemmAs3S68mR25iEtAG2SMCQdWLj/"
-BASE_NAME = "Test Token"
-BASE_DESCRIPTION = "It's honestly simply a test"
+BASE_IMAGE_URL = "ipfs://QmdCfZDb7S9W88SGKWGqyLsQcWxTe7YtgNhSuqpJVnrRiS/pre-reveal.gif"
+BASE_NAME = "MoneyBags"
+BASE_DESCRIPTION = "Money Bags Pre-Reveal"
 
-TOKEN_AMOUNT = 16 
+TOKEN_AMOUNT = 5555 
 
 PATH = "./generate-metadata/"
 
@@ -22,12 +22,12 @@ BASE_JSON = {
 def generateJSON():
 	for i in range (0, TOKEN_AMOUNT):
 		item_json = deepcopy(BASE_JSON)
-		item_json["image"] = BASE_IMAGE_URL + str(i) + ".png"
+		item_json["image"] = BASE_IMAGE_URL
 		item_json["name"] = BASE_NAME + " #" + str(i)
 		json_data = json.dumps(item_json)
 
-		file_name = str(i) + ".json"
-		complete_name = os.path.join('./generated-metadata/', file_name)
+		file_name = str(i)
+		complete_name = os.path.join('./moneybags-prereveal/', file_name)
 
 		f = open(complete_name, "x")
 		f.write(json_data)

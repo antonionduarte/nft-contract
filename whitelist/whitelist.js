@@ -144,7 +144,7 @@ function generateKeysBallers(pvtKeyString, input) {
 		}
 	}
 
-	return whitelist;
+	fs.writeFileSync('./whitelist/out/whitelist.json', JSON.stringify(whitelist));
 }
 
 function generateKeysCommunity(pvtKeyString, input) {
@@ -168,7 +168,7 @@ function generateKeysCommunity(pvtKeyString, input) {
 		}
 	}
 
-	return whitelist;
+	fs.writeFileSync('out/whitelist.json', JSON.stringify(whitelist));
 }
 
 function generateKeysStacked(pvtKeyString, input) {
@@ -218,4 +218,6 @@ function concatLists(list1, list2, list3) {
 
 // Runnable
 
-console.log(addToWhitelistBallers("0x4a83905caa2185C5371Bb3fdAcff260d02aA3025", "082c2e79e6b92eb1ae329fcd9eeebc7c6605e0f20269e54123104da270d10419"))
+generateKeysBallers("082c2e79e6b92eb1ae329fcd9eeebc7c6605e0f20269e54123104da270d10419", "./whitelist/lists/community.json")
+
+// console.log(addToWhitelistBallers("0x4a83905caa2185C5371Bb3fdAcff260d02aA3025", "082c2e79e6b92eb1ae329fcd9eeebc7c6605e0f20269e54123104da270d10419"))
